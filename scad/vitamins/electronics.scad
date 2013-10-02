@@ -15,8 +15,10 @@ module sanguinololu() {
 
 Sanguinololu = ["SANGUINOL: Sanguinolou electronics", 4   * 25.4,    2 * 25.4, 1.5 * 2.54, []];
 Melzi =        ["MELZI: Melzi electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, ["USBLEAD: USB A to Mini B lead",
-                                                                                                 "SDCARD: Micro SD card",
-                                                                                                 "SDUSB: Micro SD to USB adapter"]];
+                                                                                                "SDCARD: Micro SD card",
+ //tony@t3p3 the whole spacings are kept the same as the Melzi as they are not used due to odd hole spacings                                                                                                "SDUSB: Micro SD to USB adapter"]];
+RAMPS =        ["RAMPS: RAMPS electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, []]; //NB not the right holes for ramps, dealt with within the main.scad due to odd hole positioning
+DUET =        ["DUET: DUET electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, []]; //NB not the right holes for ramps, dealt with within the main.scad due to odd hole positioning
 
 function controller_name(type)        = type[0];
 function controller_length(type)      = type[1];

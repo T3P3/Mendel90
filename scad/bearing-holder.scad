@@ -28,11 +28,14 @@ function bearing_holder_width(bearing) = bearing[1] + wall * 2;
 function bearing_ziptie_radius(bearing) = bearing[1] / 2 + wall + eta;
 
 module bearing_holder(bearing, bar_height, populate = false, rad = 0) {
+    //tony@t3p3 added 
+    easy_insertion=2; //reduce the bearing grip by 2mm as the ziptie holds it in place
+
     bearing_length = bearing[0];
     bearing_dia = bearing[1];
     below = 5 * bearing_dia / 15;
-    height = bar_height + bearing_dia/2 - below;
-    offset = below + height / 2 - bearing_dia / 2;
+    height = bar_height + bearing_dia/2 - below -easy_insertion;
+    offset = below + height / 2 - bearing_dia / 2 +easy_insertion;
     fence = 2.5;
     fence_width = sqrt(bearing_dia * bearing_dia - 4 * below * below) + eta;
     width = bearing_holder_width(bearing);

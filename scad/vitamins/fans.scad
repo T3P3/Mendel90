@@ -34,7 +34,7 @@ module fan(type) {
         linear_extrude(height = depth, center = true, convexity = 4)
             difference() {
                 //overall outside
-                rounded_square(width, width, corner_radius);
+                rounded_square(width, width, corner_radius, center = true);
 
                 //main inside bore, less hub
                 difference() {

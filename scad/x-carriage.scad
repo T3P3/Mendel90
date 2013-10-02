@@ -252,7 +252,8 @@ front_nut_y = - width / 2 + wall;
 gap = 6;
 taper_angle = 30;
 nozzle_height = 6;
-duct_height = 20;
+//tony@t3p3 changed duct height to better clear bulldog clip handles on bed
+duct_height = 17;
 ir = hot_end_duct_radius(hot_end);
 or = ir + duct_wall + gap + duct_wall;
 skew = nozzle_height * tan(taper_angle);
@@ -488,7 +489,7 @@ module x_carriage_stl(){
                                         difference() {
                                             inner_base_shape();
                                             translate([-base_offset, -hole_offset])
-                                                rounded_square(hole + 2 * wall, hole_width + 2 * wall, corner_radius + wall);
+                                                rounded_square(hole + 2 * wall, hole_width + 2 * wall, corner_radius + wall, center = true);
 
                                         }
                             }
@@ -545,7 +546,7 @@ module x_carriage_stl(){
             translate([-base_offset, 0, 0]) {
                 // hole to clear the hot end
                 translate([0, - hole_offset])
-                    rounded_rectangle([hole, hole_width, 2 * rim_thickness], corner_radius);
+                    rounded_rectangle([hole, hole_width, 2 * rim_thickness], corner_radius, center=true);
 
                 // holes for connecting extruder
                 for(xy = mounting_holes)

@@ -1,1 +1,1 @@
-include <dibond_config.scad>
+include <laser_cut_config.scad>

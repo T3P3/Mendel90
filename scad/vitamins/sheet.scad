@@ -20,7 +20,9 @@
 //
 //         [ Code, Description, Thickness, Color, Soft]
 //
-MDF6     = [ "MD", "MDF sheet",            6, [0.4, 0.4, 0.2, 1    ], true];    // ~1/4"
+MelamineMDF63     = [ "MM", "Melamine MDF sheet",            6.3, [1, 1, 1, 1    ], false];    //hard so nuts are used.
+MelamineMDF6     = [ "MM", "Melamine MDF sheet",            6, [1, 1, 1, 1    ], false];    //hard so nuts are used.
+MDF6     = [ "MD", "MDF sheet",            6, [0.4, 0.4, 0.2, 1    ], true];    // 
 MDF10    = [ "MD", "MDF sheet",           10, [0.4, 0.4, 0.2, 1    ], true];    // ~3/8"
 MDF12    = [ "MD", "MDF sheet",           12, [0.4, 0.4, 0.2, 1    ], true];    // ~1/2"
 PMMA6    = [ "AC", "Acrylic sheet",        6, [1,   1,   1,   0.5  ], false];   // ~1/4"

@@ -18,6 +18,7 @@ use <y-belt-anchor.scad>
 use <z-coupling.scad>
 use <z-motor-bracket.scad>
 use <z-limit-switch-bracket.scad>
+use <z-top-limit-switch-bracket-for-lc-mendel.scad>
 use <fan-guard.scad>
 use <wade.scad>
 use <cable_clip.scad>
@@ -26,11 +27,14 @@ use <ATX_PSU_brackets.scad>
 use <spool_holder.scad>
 use <tube_cap.scad>
 use <d-motor_bracket.scad>
+use <lc_cutout.scad>
 include <positions.scad>
+
 
 X = 0 * X_travel / 2; // - limit_switch_offset;
 Y = 0 * Y_travel / 2; // - limit_switch_offset;
 Z = 0.5 * Z_travel;
+
 
 //
 // X axis
@@ -119,7 +123,7 @@ module x_motor_assembly() {
 // Z axis
 //
 Z_motor_length = NEMA_length(Z_motor);
-Z_bar_length = height - Z_motor_length - base_clearance;
+Z_bar_length = height - Z_motor_length - base_clearance + sheet_thickness(frame)/2;  //modified for LC M90 Z bar lengths
 
 module z_end(motor_end) {
     Z_screw_length = Z0 + Z_travel + anti_backlash_height() + axis_end_clearance
@@ -128,6 +132,9 @@ module z_end(motor_end) {
     if(!motor_end && bottom_limit_switch)
         translate([-z_bar_offset(), gantry_setback, Z0 - x_end_thickness() / 2])
             z_limit_switch_assembly();
+    if(!motor_end && top_limit_switch)
+        translate([-z_bar_offset()-2.2, gantry_setback, height_LC-z_top_side_bracket_height-49 -110])
+            z_top_limit_switch_LC_assembly();
 
     translate([-z_bar_offset(), 0, Z_motor_length]) {
 
@@ -149,11 +156,6 @@ module z_end(motor_end) {
 
         translate([z_bar_offset(), 0, Z_bar_length / 2])
             rod(Z_bar_dia, Z_bar_length);
-
-        translate([z_bar_offset(), gantry_setback, Z_bar_length - bar_clamp_depth / 2]) {
-            rotate([90,motor_end ? 90 : - 90, 0])
-                z_bar_clamp_assembly(Z_bar_dia, gantry_setback, bar_clamp_depth, !motor_end);
-        }
     }
 }
 
@@ -272,7 +274,10 @@ module y_carriage() {
         for(x = [-bed_holes / 2, bed_holes / 2])
             for(y = [-bed_holes / 2, bed_holes / 2])
                 translate([x, y, 0])
-                    cylinder(r = 2.5/2, h = 100, center = true);
+                    cylinder(r = M3_clearance_radius-0.2, h = 100, center = true);
+        //additional central mounting hole for easier levelling
+        translate([0, -bed_holes / 2, 0])
+          cylinder(r = M3_clearance_radius-0.2, h = 100, center = true);
     }
 }
 
@@ -433,7 +438,7 @@ z_gantry_wire_height = height - base_clearance - fixing_block_width() -fixing_bl
 bed_wires_y = Y0 + Y_bar_length2 / 2 - Y2_rail_offset + cable_clip_extent(base_screw, thermistor_wires);
 
 Y_cable_clip_x = base_width / 2 - right_w - cable_clip_extent(base_screw, motor_wires);
-Y_front_cable_clip_y = -Y_bar_length2 / 2 + 20;
+Y_front_cable_clip_y = -Y_bar_length2 / 2 + 25;
 Y_back_cable_clip_y = gantry_Y + sheet_thickness(frame) + fixing_block_height() - 5;
 
 cable_clips = [ // cable1, cable2 , position, vertical, rotation
@@ -449,11 +454,11 @@ cable_clips = [ // cable1, cable2 , position, vertical, rotation
         [20, bed_wires_y, 0], false, -90],
     // Z axis left
     [endstop_wires, fan_motor_wires,
-        [left_stay_x + 15, gantry_Y + sheet_thickness(frame), z_gantry_wire_height], true, 90],
+        [left_stay_x - 15, gantry_Y + sheet_thickness(frame), z_gantry_wire_height-10], true, 90],
 
     // Z axis right
     [endstop_wires, fan_motor_wires,
-        [right_stay_x - 15, gantry_Y + sheet_thickness(frame), z_gantry_wire_height], true, 90],
+        [right_stay_x + 15, gantry_Y + sheet_thickness(frame), z_gantry_wire_height-10], true, 90],
 
 ];
 
@@ -545,53 +550,125 @@ module fixing_block_holes() {
 
 Y_motor_stay_hole_y = gantry_Y + sheet_thickness(frame) + fixing_block_height() + motor_wires_hole_radius;
 
+//LC Z Assembly dimensions
+m_width = ceil(NEMA_width(Z_motor));
+z_bracket_d = gantry_setback + m_width / 2;
+z_top_bracket_width = Z_bar_dia+2*sheet_thickness(frame)+42;
+z_top_bracket_depth = gantry_setback+Z_bar_dia/2+4;
+z_top_side_bracket_height = lc_fixing_offset*2-8;
+z_top_bracket_offset = 10;
+lc_back_top_z = height -gantry_thickness+10;
+
+hinge_x_cutout = 30+sheet_thickness(PMMA6);
+hinge_y_cutout = 4;
+hinge_z_cutout = 25;
+hinge_hole_a_x = 32;
+hinge_hole_b_x = 24;
+hinge_hole_a_y = hinge_y_cutout+19;
+hinge_hole_b_y = hinge_y_cutout+6;
+
 module frame_base() {
     difference() {
         translate([0,0, -sheet_thickness(base) / 2])
-            sheet(base, base_width, base_depth, [base_corners, base_corners, base_corners, base_corners]);            // base
+            sheet(base, base_w_LC, base_d_LC, [base_corners, base_corners, base_corners, base_corners]);            // base
+        //frame stay LC screw face slots
+        translate([left_stay_x,gantry_Y+ sheet_thickness(frame)+lc_fixing_offset,-sheet_thickness(base) / 2])
+            lc_screw_side_cutout(sheet_thickness(base));
+        translate([left_stay_x,gantry_Y+ sheet_thickness(frame)+stay_depth_LC-lc_fixing_offset,-sheet_thickness(base) / 2])
+            lc_screw_side_cutout(sheet_thickness(base));
+        translate([right_stay_x,gantry_Y+ sheet_thickness(frame)+lc_fixing_offset,-sheet_thickness(base) / 2])
+            lc_screw_side_cutout(sheet_thickness(base));
+        translate([right_stay_x,gantry_Y+ sheet_thickness(frame)+stay_depth_LC-lc_fixing_offset,-sheet_thickness(base) / 2])
+            lc_screw_side_cutout(sheet_thickness(base));
+        //Gantry LC screw face slots
+        translate([base_width/2-lc_fixing_offset,gantry_Y + sheet_thickness(frame) / 2,-sheet_thickness(base) / 2])
+          rotate([0,0,90])
+            lc_screw_side_cutout(sheet_thickness(base));
+        translate([-base_width/2+lc_fixing_offset,gantry_Y + sheet_thickness(frame) / 2,-sheet_thickness(base) / 2])
+          rotate([0,0,90])
+            lc_screw_side_cutout(sheet_thickness(base));
+        translate([left_stay_x+lc_fixing_offset,gantry_Y + sheet_thickness(frame) / 2,-sheet_thickness(base) / 2])
+          rotate([0,0,90])
+            lc_screw_side_cutout(sheet_thickness(base));
+        translate([right_stay_x+lc_fixing_offset,gantry_Y + sheet_thickness(frame) / 2,-sheet_thickness(base) / 2])
+          rotate([0,0,90])
+            lc_screw_side_cutout(sheet_thickness(base));
+        //Z motor bracket slots
+        for(x = [1,-1]){
+          translate([idler_end-z_bar_offset()+ x*(2+z_bracket_d/2-sheet_thickness(frame)/2), Y0,-sheet_thickness(base) / 2])
+             lc_screw_side_cutout(sheet_thickness(frame));
+          translate([motor_end+z_bar_offset()+ x*(2+z_bracket_d/2-sheet_thickness(frame)/2), Y0,-sheet_thickness(base) / 2])
+             lc_screw_side_cutout(sheet_thickness(frame));
+			}              
+        //Back Box fixing holes
+        for(x=[right_stay_x-lc_fixing_offset,(left_stay_x + right_stay_x)/2,left_stay_x+lc_fixing_offset])
+          translate([x,base_d_LC/2,-sheet_thickness(base) / 2])
+            lc_nut_side_cutout(sheet_thickness(base),true);
+        //side Box fixing holes
+        for(y=[-1,1])
+          for(x=[-base_d_LC/2+lc_fixing_offset,(-base_d_LC/2 + gantry_Y)/2,gantry_Y-lc_fixing_offset])
+            translate([y*base_w_LC/2,x,-sheet_thickness(base) / 2])
+              rotate([0,0,y*-90])
+                lc_nut_side_cutout(sheet_thickness(base),true);
+        //holes and cutouts for door hinges
+        for(x=[-(base_w_LC-hinge_x_cutout+2*sheet_thickness(frame))/2,(base_w_LC-hinge_x_cutout+2*sheet_thickness(frame))/2])
+          translate([x,-base_d_LC/2+hinge_y_cutout/2,(hinge_z_cutout)/ 2-sheet_thickness(frame)])
+            cube([hinge_x_cutout+0.1,hinge_y_cutout+0.1,hinge_z_cutout+0.1],center=true);
+        for(x=[-(base_w_LC-hinge_hole_a_x*2+2*sheet_thickness(frame))/2,(base_w_LC-hinge_hole_a_x*2+2*sheet_thickness(frame))/2])
+          translate([x,-base_d_LC/2+hinge_hole_a_y,-sheet_thickness(frame)/2])
+            rotate([0,0,90])
+              slot(r=1.75,l=2.5,h=sheet_thickness(frame)+2);
+        for(x=[-(base_w_LC-hinge_hole_b_x*2+2*sheet_thickness(frame))/2,(base_w_LC-hinge_hole_b_x*2+2*sheet_thickness(frame))/2])
+          translate([x,-base_d_LC/2+hinge_hole_b_y,-sheet_thickness(frame)/2])
+            rotate([0,0,90])
+              slot(r=1.75,l=2.5,h=sheet_thickness(frame)+2);          
 
-        fixing_block_holes();
+
+        
         y_axis_screw_holes();
 
-        translate([motor_end + z_bar_offset(), 0, 0])               // in case motor has second shaft
-            cylinder(r = 4, h = 100, center = true);
+        //translate([motor_end + z_bar_offset(), 0, 0])               // in case motor has second shaft
+         //   cylinder(r = 4, h = 100, center = true);
 
-        translate([idler_end - z_bar_offset(), 0, 0])
-            cylinder(r = 4, h = 100, center = true);
+        //translate([idler_end - z_bar_offset(), 0, 0])
+        //    cylinder(r = 4, h = 100, center = true);
 
 
         translate([X_origin, ribbon_clamp_y,0])
             ribbon_clamp_holes(bed_ways, base_screw)
                 base_screw_hole();
-
         if(atx_psu(psu))
             translate([right_stay_x + sheet_thickness(frame) / 2, psu_y, psu_z])
                 rotate([0, -90, 180])
                     atx_screw_positions(psu, true)
                         base_screw_hole();
-
+        //holes for alu bars to provide base clearance and stiffness
+          translate([left_stay_x - 0, -base_depth / 2 + lc_fixing_offset / 2, 0]) // front
+                    cylinder(r = M3_clearance_radius-0.2, h = 100, center = true);
+          translate([right_stay_x +0, -base_depth / 2 + lc_fixing_offset / 2, 0]) // front
+                    cylinder(r = M3_clearance_radius-0.2, h = 100, center = true);
+        
         place_cable_clips(true);
         //
         // Holes for wires to run underneath
         //
         if(base_nuts) {
             // Y motor
-            translate([Y_belt_line + Y_belt_motor_offset + NEMA_length(Y_motor) - 5, Y_motor_end, 0])
-                wire_hole(motor_wires_hole_radius);
-
-            translate([Y_cable_clip_x + cable_clip_offset(base_screw, motor_wires), Y_motor_stay_hole_y, 0])
-                wire_hole(motor_wires_hole_radius);
-
+            translate([Y_belt_line + Y_belt_motor_offset + NEMA_length(Y_motor) - 2, Y_motor_end +30, 0])
+                rotate([0,0,90])
+                slot(r=4,l=8,h=100);
+                
+            translate([Y_cable_clip_x - cable_clip_offset(base_screw, endstop_wires),
+                    Y_motor_stay_hole_y + 4 + hole_edge_clearance + endstop_wires_hole_radius+5, 0])
+                slot(r=4,l=8,h=100);
+                
             // Y limit
             translate([X_origin + Y_bar_spacing / 2 + bar_rail_offset(Y_bar_dia) - bar_clamp_tab / 2,
-                       Y_front_cable_clip_y - 5, 0])
-                wire_hole(endstop_wires_hole_radius);
-
-            translate([Y_cable_clip_x - cable_clip_offset(base_screw, endstop_wires),
-                    Y_motor_stay_hole_y + motor_wires_hole_radius + hole_edge_clearance + endstop_wires_hole_radius, 0])
-                wire_hole(endstop_wires_hole_radius);
-
-
+                       Y_front_cable_clip_y - 35, 0])
+                slot(r=4,l=4,h=100);
+                
+            translate([Y_cable_clip_x + cable_clip_offset(base_screw, motor_wires), Y_motor_stay_hole_y+5, 0])
+                slot(r=4,l=4,h=100);
         }
     }
 }
@@ -599,49 +676,125 @@ module frame_base() {
 
 module frame_gantry() {
     difference() {
-        translate([0, gantry_Y + sheet_thickness(frame) / 2, height / 2])
+        translate([0, gantry_Y + sheet_thickness(frame) / 2, height_LC / 2])
             rotate([90,0,0])
-                if(single_piece_frame)
-                    difference() {
-                        sheet(frame, base_width, height, [frame_corners, frame_corners, 0, 0]);   // vertical plane
-                        translate([X_origin, -gantry_thickness, 0])
-                            rounded_rectangle([window_width,  height, sheet_thickness(frame) + 1], r = window_corner_rad, center = true);
+              union() {
+                difference() {
+                    union(){
+                      //bottom tabs
+                      translate([base_width/2-lc_fixing_offset,-height_LC/2+0.1,0])
+                        rotate([0,0,180])
+                          lc_tabs(sheet_thickness(frame));
+                      translate([-base_width/2+lc_fixing_offset,-height_LC/2+0.1,0])
+                        rotate([0,0,180])
+                          lc_tabs(sheet_thickness(frame));
+                      translate([left_stay_x+lc_fixing_offset,-height_LC/2+0.1,0])
+                        rotate([0,0,180])
+                          lc_tabs(sheet_thickness(frame));
+                      translate([right_stay_x+lc_fixing_offset,-height_LC/2+0.1,0])
+                        rotate([0,0,180])
+                          lc_tabs(sheet_thickness(frame));
+                      sheet(frame, base_w_LC, height_LC, [frame_corners, frame_corners, 0, 0]);   // vertical plane
                     }
-                else {
-                    translate([-base_width / 2 + left_w / 2, 0, 0])
-                        sheet(frame, left_w, height, [frame_corners, 0, 0, 0]);   // left side
+                    translate([X_origin,- (height_LC-height)/2 -gantry_thickness,0])
+                        rounded_rectangle([window_width,  height, sheet_thickness(frame) + 1], r = window_corner_rad);
+                    //bottom nut slots
+                    translate([base_width/2-lc_fixing_offset,-height_LC/2,0])
+                      rotate([0,0,180])
+                        lc_nut_side_cutout(sheet_thickness(frame),true);
+                    translate([-base_width/2+lc_fixing_offset,-height_LC/2,0])
+                      rotate([0,0,180])
+                        lc_nut_side_cutout(sheet_thickness(frame),true);
+                    translate([left_stay_x+lc_fixing_offset,-height_LC/2,0])
+                      rotate([0,0,180])
+                        lc_nut_side_cutout(sheet_thickness(frame),true);
+                    translate([right_stay_x+lc_fixing_offset,-height_LC/2,0])
+                      rotate([0,0,180])
+                        lc_nut_side_cutout(sheet_thickness(frame),true);
+                    //left stay lc fixings
+                    translate([left_stay_x,height_LC/2-lc_fixing_offset,0])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    translate([left_stay_x,+lc_fixing_offset,0])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    translate([left_stay_x,-height_LC/2+3*lc_fixing_offset,0])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    //right stay lc fixings
+                    translate([right_stay_x,height_LC/2-lc_fixing_offset,0])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    translate([right_stay_x,+lc_fixing_offset,0])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    translate([right_stay_x,-height_LC/2+3*lc_fixing_offset,0])
+                        lc_screw_side_cutout(sheet_thickness(frame)); 
+                    //Z axis bottom
+                    translate([idler_end-z_bar_offset(),-height_LC/2+NEMA_length(Z_motor)+sheet_thickness(frame)/2,0])
+                      rotate([0,0,90])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    translate([motor_end+z_bar_offset(),-height_LC/2+NEMA_length(Z_motor)+sheet_thickness(frame)/2,0])
+                      rotate([0,0,90])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    for(x = [1,-1]){
+                      translate([idler_end-z_bar_offset()+ x*(2+(gantry_setback + ceil(NEMA_width(Z_motor)/2))/2-sheet_thickness(frame)/2), -height_LC/2+(NEMA_length(Z_motor))/2,0])
+                         lc_screw_side_cutout(sheet_thickness(frame));
+                    }
+                    for(x = [1,-1]){
+                      translate([motor_end+z_bar_offset()+ x*(2+(gantry_setback + ceil(NEMA_width(Z_motor)/2))/2-sheet_thickness(frame)/2), -height_LC/2+(NEMA_length(Z_motor))/2,0])
+                         lc_screw_side_cutout(sheet_thickness(frame));
+                    }
+                    //Z axis top
+                    translate([idler_end-z_top_bracket_offset,height -sheet_thickness(frame)/2-height_LC/2,0])
+                      rotate([0,0,90])
+                        lc_tabs_cutout(sheet_thickness(frame));
+                    translate([motor_end+z_top_bracket_offset,height -sheet_thickness(frame)/2-height_LC/2,0])
+                      rotate([0,0,90])
+                        lc_tabs_cutout(sheet_thickness(frame));
 
-                    translate([ base_width / 2 - right_w / 2, 0, 0])
-                        sheet(frame, right_w, height, [0, frame_corners, 0, 0]);  // right side
-
-                    translate([0, height / 2 - gantry_thickness / 2, -sheet_thickness(frame)])
-                        sheet(frame, base_width, gantry_thickness, [frame_corners, frame_corners, 0, 0]); // top
+                    for(x = [1,-1]){
+                      translate([idler_end-z_top_bracket_offset+ x*(z_top_bracket_width/2-sheet_thickness(frame)/2-2),height+z_top_side_bracket_height/2-height_LC/2,0])
+                        lc_screw_side_cutout(sheet_thickness(frame)); 
+                    }
+                    for(x = [1,-1]){
+                      translate([motor_end+z_top_bracket_offset+ x*(z_top_bracket_width/2-sheet_thickness(frame)/2-2),height+z_top_side_bracket_height/2-height_LC/2,0])
+                        lc_screw_side_cutout(sheet_thickness(frame));
+                    }
+                    //Back top box
+                    translate([left_stay_x+2*lc_fixing_offset,height -height_LC/2 -gantry_thickness+10,0])
+                      rotate([0,0,90])
+                        lc_tabs_cutout(sheet_thickness(frame));
+                    translate([right_stay_x-2*lc_fixing_offset,height -height_LC/2 -gantry_thickness+10,0])
+                      rotate([0,0,90])
+                        lc_tabs_cutout(sheet_thickness(frame));
                 }
-
-        fixing_block_holes();
-
-        //
-        // Z bar clamps
-        //
-        for(end = [idler_end, motor_end])
-            translate([end, gantry_Y, height - base_clearance - bar_clamp_depth / 2])
-                rotate([0, 90, 90])
-                    bar_clamp_holes(Z_bar_dia, false)
-                        frame_screw_hole();
-
-        //
-        // Z motor bracket holes
-        //
-        for(side = [idler_end - z_bar_offset(), motor_end + z_bar_offset()])
-            translate([side, 0, Z_motor_length])
-                z_motor_bracket_holes(gantry_setback);
+              }
+        
+        //side Box fixing holes
+        for(y=[-1,1])
+          for(x=[lc_fixing_offset,(height_LC+lc_fixing_offset/2)*1/3, (height_LC-lc_fixing_offset/2)*2/3,height_LC-lc_fixing_offset])
+            translate([y*base_w_LC/2,gantry_Y+sheet_thickness(frame)/2,x])
+              rotate([0,90,y*-90])
+                lc_nut_side_cutout(sheet_thickness(base),true);
+          //top Box fixing holes
+          for(x=[-base_w_LC/2+lc_fixing_offset,(base_w_LC/2-lc_fixing_offset/2)*1/3, (-base_w_LC/2+lc_fixing_offset/2)*1/3,base_w_LC/2-lc_fixing_offset])
+            translate([x,gantry_Y+sheet_thickness(frame)/2,height_LC])
+              rotate([90,0,0])
+                lc_nut_side_cutout(sheet_thickness(base),true);
+          
 
         //
         // Z limit switch holes
         //
+        //bottom holes
         translate([idler_end -z_bar_offset(), gantry_Y, Z0 - x_end_thickness() / 2])
             z_limit_screw_positions()
-                frame_screw_hole();
+              rotate([0,0,90])
+                slot(r = 1.6, l = 15, h = 100, center = true);
+        
+        //top holes
+        for (z=[10,-10])
+        translate([idler_end-z_bar_offset()-6.4, gantry_Y, height_LC-z_top_side_bracket_height-28+z])
+              rotate([90,90,0])
+                slot(r = 1.6, l = 10, h = 100, center = true);
+                
+        
         //
         // X ribbon clamp
         //
@@ -653,7 +806,7 @@ module frame_gantry() {
             if(cnc_sheets)
                 translate([0, 0, ribbon_clamp_width(frame_screw) / 2 + 5])
                     rotate([90, 0, 0])
-                        slot(r = 2.5 / 2, l = ribbon_clamp_slot(x_end_ways), h = 100, center = true);
+                        slot(r = 2.5, l = ribbon_clamp_slot(x_end_ways), h = 100, center = true);
 
         }
         //
@@ -664,28 +817,39 @@ module frame_gantry() {
                 rotate([0, -90, 180])
                     atx_screw_positions(psu, false)
                         frame_screw_hole();
+                        
+        //Idler/Motor rod clamp adjustment holes (to negate requirement for 5.5mm flat spanner for assembly
+         translate([idler_end - 17.5,
+                    gantry_Y, Z_motor_length + z_motor_bracket_height() + 50])
+            rotate([90, 0, 0])
+                cylinder(r=4,h=100, center=true);    
+         translate([motor_end + 17.5,
+                    gantry_Y, Z_motor_length + z_motor_bracket_height() + 50])
+            rotate([90, 0, 0])
+                cylinder(r=4,h=100, center=true);    
+        
         //
         // Wiring holes
         //
         translate([idler_end - bar_rail_offset(Z_bar_dia) + 0.5 * bar_clamp_tab,
                     gantry_Y, height - base_clearance - bar_clamp_depth - endstop_wires_hole_radius - base_clearance])
             rotate([90, 0, 0])
-                wire_hole(endstop_wires_hole_radius);  // Z top endstop
-
-        translate([-base_width / 2 + base_clearance + fixing_block_width() + base_clearance + motor_wires_hole_radius, gantry_Y, 0])
+                slot(r=3,l=3,h=100);  // Z top endstop
+                
+        translate([-base_width / 2 + base_clearance+ 30, gantry_Y, 25])
             rotate([90, 0, 0])
-                wire_hole_or_slot(motor_wires_hole_radius);    // Z lhs motor
+                slot(r=4,l=8,h=100);    // Z lhs motor
 
         translate([max(motor_end + bar_rail_offset(Z_bar_dia),
-                       base_width / 2 - right_w + fixing_block_width() + 2 * base_clearance + motor_wires_hole_radius),
-                    gantry_Y, fixing_block_height() + motor_wires_hole_radius + base_clearance])
+                       base_width / 2 - right_w + fixing_block_width() + base_clearance),
+                    gantry_Y, 25])
             rotate([90, 0, 0])
-                wire_hole(motor_wires_hole_radius);    // Z rhs motor
+                slot(r=4,l=8,h=100);   // Z rhs motor
 
         translate([idler_end - bar_rail_offset(Z_bar_dia),
                     gantry_Y, Z_motor_length + z_motor_bracket_height() + endstop_wires_hole_radius])
             rotate([90, 0, 0])
-                wire_hole(endstop_wires_hole_radius);  // bottom limit switch
+                slot(r=3,l=3,h=100);    // bottom limit switch
 
         place_cable_clips(true);
     }
@@ -695,28 +859,118 @@ module frame_stay(left, bodge = 0) {
     x = left ? left_stay_x : right_stay_x;
 
     difference() {
-        translate([x, gantry_Y + sheet_thickness(frame) + stay_depth / 2, stay_height / 2])
-            rotate([90,0,90])
-                sheet(frame, stay_depth, stay_height, [0, frame_corners, 0, 0]);
+            translate([x, gantry_Y + sheet_thickness(frame) + stay_depth_LC / 2, stay_height_LC / 2])
+                rotate([90,0,90]){
+                union(){
+                    difference(){
+                      union(){
+                        sheet(frame, stay_depth_LC, stay_height_LC, [0, frame_corners, 0, 0]);
+                        //bottom tabs
+                        translate([stay_depth_LC/2-lc_fixing_offset,-stay_height_LC/2+0.1,0])
+                          rotate([0,0,180])
+                            lc_tabs(sheet_thickness(frame));
+                        translate([-stay_depth_LC/2+lc_fixing_offset,-stay_height_LC/2+0.1,0])
+                          rotate([0,0,180])
+                            lc_tabs(sheet_thickness(frame));
+                        //side tabs
+                        translate([-stay_depth_LC/2+0.1,stay_height_LC/2-lc_fixing_offset,0])
+                          rotate([0,0,90])
+                            lc_tabs(sheet_thickness(frame));
+                        translate([-stay_depth_LC/2+0.1,+lc_fixing_offset,0])
+                          rotate([0,0,90])
+                            lc_tabs(sheet_thickness(frame));
+                        translate([-stay_depth_LC/2+0.1,-height_LC/2+3*lc_fixing_offset,0])
+                          rotate([0,0,90])
+                            lc_tabs(sheet_thickness(frame));
+                      }
+                      //bottom nut slots
+                      translate([stay_depth_LC/2-lc_fixing_offset,-stay_height_LC/2,0])
+                          rotate([0,0,180])
+                          lc_nut_side_cutout(sheet_thickness(frame),true);
+                      translate([-stay_depth_LC/2+lc_fixing_offset,-stay_height_LC/2,0])
+                        rotate([0,0,180])
+                          lc_nut_side_cutout(sheet_thickness(frame),true);
+                      //side nut slots
+                      translate([-stay_depth_LC/2,stay_height_LC/2-lc_fixing_offset,0])
+                          rotate([0,0,90])
+                            lc_nut_side_cutout(sheet_thickness(frame),true);
+                      translate([-stay_depth_LC/2,+lc_fixing_offset,0])
+                          rotate([0,0,90])
+                            lc_nut_side_cutout(sheet_thickness(frame),true);
+                       translate([-stay_depth_LC/2,-height_LC/2+3*lc_fixing_offset,0])
+                          rotate([0,0,90])
+                            lc_nut_side_cutout(sheet_thickness(frame),true);
+                      //top back box fixings
+                      translate([stay_depth_LC/2-lc_fixing_offset,-stay_height_LC / 2 +lc_back_top_z,0])
+                        rotate([0,0,-90])
+                          lc_screw_side_cutout(sheet_thickness(frame));
+                      translate([-stay_depth_LC/2+lc_fixing_offset,-stay_height_LC / 2 +lc_back_top_z,0])
+                        rotate([0,0,-90])
+                          lc_screw_side_cutout(sheet_thickness(frame));
+                      //extruder gantry fixings
+                      translate([-1.5 ,-stay_height_LC / 2 +390 -sheet_thickness(MelamineMDF63)/sqrt(2),0])
+                        rotate([0,0,-45])
+                          lc_screw_side_cutout(sheet_thickness(MelamineMDF63));
+                      translate([-10 ,-stay_height_LC / 2 + 390+sheet_thickness(MelamineMDF63)/sqrt(2),0])
+                        rotate([0,0,-45]) 
+                          lc_screw_side_cutout(sheet_thickness(MelamineMDF63));
+                    }
+                  }
+                }
+              //Back Box fixing holes
+                for(z=[lc_fixing_offset,(height_LC+lc_fixing_offset/2)*1/3, (height_LC-lc_fixing_offset/2)*2/3])
+                    translate([x,base_d_LC/2,z])
+                      rotate([0,90,0])
+                        lc_nut_side_cutout(sheet_thickness(base),true);
+        
 
-        fixing_block_holes();
+        //spool_holder_holes();
 
-        spool_holder_holes();
+        //if(left)
+           // translate([x + (sheet_thickness(frame) + fan_depth(case_fan)) / 2, fan_y, fan_z])
+           //     rotate([0,90,0])
+           //         scale([1 + bodge, 1 + bodge, 1]) fan_holes(case_fan);       // scale prevents OpenCSG z buffer artifacts
 
-        if(left)
-            translate([x + (sheet_thickness(frame) + fan_depth(case_fan)) / 2, fan_y, fan_z])
-                rotate([0,90,0])
-                    scale([1 + bodge, 1 + bodge, 1]) fan_holes(case_fan);       // scale prevents OpenCSG z buffer artifacts
-
-        else {
+        if(!left) {
             //
             // Electronics mounting holes
             //
-            translate([x, controller_y, controller_z])
-                rotate([90, 0, 90])
-                    controller_screw_positions(controller)
-                        cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
-
+             //add RAMPS with Arduino MEGA weird screw positions
+            translate([x, controller_y+55, controller_z+95])
+              rotate([90, -90, 90]){
+                translate([14, 2.5, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([15.3, 50.8, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([96.5, 2.5, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([90.2, 50.8, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([66.1, 35.6, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([66.1, 7.7, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+              }
+            //add DUET and Expansion board screw positions  (+Z,-Y,X)
+            translate([x, controller_y+107, controller_z+234])
+              rotate([90, -90, 90]){
+                translate([0, -1.1, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([0, 116.5, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([-61.28, 0, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([-61.28, 115, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([-83, 0, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([-83, 115, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([-175, 0, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true);
+                translate([-175, 115, 0])
+                  cylinder(r = frame_nuts ? M3_clearance_radius : M3_tap_radius, h = 100, center = true); 
+              }
             translate([x, psu_y, psu_z])
                 if(atx_psu(psu))
                     rotate([0, -90, 180]) {
@@ -733,33 +987,423 @@ module frame_stay(left, bodge = 0) {
             //
             // Wiring holes
             //
-            translate([x, Y_motor_stay_hole_y, 0]) {
-                rotate([90, 0, 90])
-                    wire_hole_or_slot(motor_wires_hole_radius); // Y motor wires at bottom
-
-                translate([0, motor_wires_hole_radius + hole_edge_clearance + endstop_wires_hole_radius, 0])
-                    rotate([90, 0, 90])
-                        wire_hole_or_slot(endstop_wires_hole_radius); // Y endstop wires at bottom
-            }
+            translate([x, Y_motor_stay_hole_y -5, 15])
+                rotate([90, 90, 90])
+                    slot(r=3,l=11,h=100); // Y motor wires at bottom
 
             translate([x, bed_wires_y + cable_clip_offset(base_screw, bed_wires), 0])
                 rotate([90, 0, 90])
-                    wire_hole_or_slot(bed_wires_hole_radius);     // Bed wires at bottom
+            slot(r=5.9,l=13,h=100);  // Bed wires at bottom
 
-            translate([x, bed_wires_y - cable_clip_offset(base_screw, thermistor_wires),0])
-                rotate([90, 0, 90])
-                    wire_hole_or_slot(thermistor_wires_hole_radius); // Bed thermistor wires
         }
-        translate([x, gantry_Y + sheet_thickness(frame), z_gantry_wire_height]) {
-            translate([0, 0, cable_clip_offset(frame_screw, endstop_wires)])
-                rotate([0, 90, 0])
-                    wire_hole_or_slot(endstop_wires_hole_radius);           // Z endstop wires
 
-            translate([0, 0, -cable_clip_offset(frame_screw, fan_motor_wires)])
-                rotate([0, 90, 0])
-                    wire_hole_or_slot(fan_motor_wires_hole_radius);         // Z  motor wires
-        }
+              translate([x, gantry_Y + sheet_thickness(frame), z_gantry_wire_height-10])
+                rotate([90, 90, 90])
+                    slot(r=8,l=9,h=100);         // Z  motor wires
+   
     }
+}
+
+module lc_back_top() {
+  translate([(left_stay_x+right_stay_x)/2,gantry_Y +(stay_depth_LC)/2  +sheet_thickness(frame) ,lc_back_top_z]){
+    difference(){
+      union() {
+        sheet(frame, right_stay_x-left_stay_x-sheet_thickness(frame), stay_depth_LC, [0, 0, 0, 0]);
+        for(x = [1,-1]){
+          //side tabs
+          translate([x*(right_stay_x-left_stay_x-sheet_thickness(frame)-0.01)/2,stay_depth_LC/2-lc_fixing_offset,0])
+            rotate([0,0,x*-90])
+              lc_tabs(sheet_thickness(frame));
+          translate([x*(right_stay_x-left_stay_x-sheet_thickness(frame)-0.01)/2,-stay_depth_LC/2+lc_fixing_offset,0])
+            rotate([0,0,x*-90])
+              lc_tabs(sheet_thickness(frame));
+        }
+        //front tabs
+        translate([(left_stay_x-right_stay_x)/2+2*lc_fixing_offset,-stay_depth_LC/2+0.01,0])
+          rotate([0,0,180])
+            lc_tabs(sheet_thickness(frame));
+        translate([(right_stay_x-left_stay_x)/2-2*lc_fixing_offset,-stay_depth_LC/2+0.01,0])
+          rotate([0,0,180])
+            lc_tabs(sheet_thickness(frame));                             
+      }
+      //side nut slots
+      for(x = [1,-1]){
+        translate([x*(right_stay_x-left_stay_x-sheet_thickness(frame))/2,stay_depth_LC/2-lc_fixing_offset,0])
+          rotate([0,0,x*-90])
+            lc_nut_side_cutout(sheet_thickness(base),true);
+        translate([x*(right_stay_x-left_stay_x-sheet_thickness(frame))/2,-stay_depth_LC/2+lc_fixing_offset,0])
+          rotate([0,0,x*-90])
+            lc_nut_side_cutout(sheet_thickness(base),true);
+      }
+      
+      //back nut slots    
+      translate([(left_stay_x-right_stay_x)/2+2*lc_fixing_offset,stay_depth_LC/2,0])
+        rotate([0,0,0])
+          lc_nut_side_cutout(sheet_thickness(base),true);
+      translate([(right_stay_x-left_stay_x)/2-2*lc_fixing_offset,stay_depth_LC/2,0])
+        rotate([0,0,0])
+          lc_nut_side_cutout(sheet_thickness(base),true);      
+    }
+  }
+}
+
+
+module lc_z_axis_top(left=true) {
+  if(left)
+    union() {
+      translate([idler_end-z_top_bracket_offset,Y0+gantry_setback-z_top_bracket_depth/2,height-sheet_thickness(frame)/2])
+        lc_z_axis_top_plate(true);
+      for(x = [1,-1])
+        translate([idler_end-z_top_bracket_offset +x*(z_top_bracket_width/2-sheet_thickness(frame)/2-2),Y0+gantry_setback-z_top_bracket_depth/2, height+z_top_side_bracket_height/2])
+          rotate([0,90,0])
+             lc_z_axis_top_side();
+    }  
+  else
+    union() {
+      translate([motor_end+z_top_bracket_offset,Y0+gantry_setback-z_top_bracket_depth/2,height-sheet_thickness(frame)/2])
+        mirror(1,0,0)
+          lc_z_axis_top_plate(false);
+      for(x = [1,-1])
+        translate([motor_end+z_top_bracket_offset +x*(z_top_bracket_width/2-sheet_thickness(frame)/2-2),Y0+gantry_setback-z_top_bracket_depth/2, height+z_top_side_bracket_height/2])
+          rotate([0,90,0])
+            lc_z_axis_top_side();
+    }
+}
+module lc_z_axis_top_plate(left=true) {
+  difference() {
+    union(){
+      sheet(frame, z_top_bracket_width, z_top_bracket_depth , [0, 0, 0, 0]);
+      //side tab
+      translate([0,z_top_bracket_depth/2,0])
+        lc_tabs(sheet_thickness(frame));
+    }
+    //top screw side slots
+    for(x = [1,-1])
+       translate([x*(z_top_bracket_width/2-sheet_thickness(frame)/2-2),0,0])
+          //rotate([0,0,90])
+              lc_screw_side_cutout(sheet_thickness(frame));   
+    if(left)             
+      translate([z_top_bracket_offset,-gantry_setback+z_top_bracket_depth/2,0]){
+          cylinder(r = Z_bar_dia / 2-0.4, h = sheet_thickness(frame)+1, center = true);       // hole for z smooth rod
+          translate([-z_bar_offset(),0,0])
+            cylinder(r = 3.2, h = sheet_thickness(frame)+1, center = true);       // hole for z threaded rod insertion
+    }
+    else
+      translate([z_top_bracket_offset,-gantry_setback+z_top_bracket_depth/2,0]){
+        cylinder(r = Z_bar_dia / 2-0.4, h = sheet_thickness(frame)+1, center = true);       // hole for z smooth rod
+        translate([-z_bar_offset(),0,0])
+          cylinder(r = 3.2, h = sheet_thickness(frame)+1, center = true);       // hole for z threaded rod insertion
+    }
+  }
+}
+
+module lc_z_axis_top_side(){
+  difference(){
+    union(){
+      sheet(frame, z_top_side_bracket_height,z_top_bracket_depth , [0, 0, 0, 0]);
+      //side tabs
+      translate([0,z_top_bracket_depth/2-0.01,0]) //2
+          lc_tabs(sheet_thickness(frame));
+      //bottom tabs
+      rotate([0,0,270]){
+        translate([0,z_top_side_bracket_height/2 -0.01,0])
+          lc_tabs(sheet_thickness(frame));
+      }
+    }
+    //side nut slots
+    translate([0,z_top_bracket_depth/2,0])
+      lc_nut_side_cutout(sheet_thickness(frame),true);
+    //bottom nut slots
+    rotate([0,0,270]){
+      translate([0,z_top_side_bracket_height/2,0])
+        lc_nut_side_cutout(sheet_thickness(frame),true);
+    }
+    //cutout to make side triangular
+    translate([-z_top_side_bracket_height/2+10.65,-z_top_bracket_depth-3.35,-(sheet_thickness(frame)+1)/2])
+      rotate([0,0,39.8]) //acos(z_top_side_bracket_height/z_top_bracket_depth)
+        cube([z_top_side_bracket_height,z_top_bracket_depth+20,sheet_thickness(frame)+1]);
+  }
+}
+
+
+module lc_z_axis_bottom_side(){
+  difference(){
+    union(){
+      sheet(frame, (NEMA_length(Z_motor)),z_bracket_d , [0, 0, 0, 0]);
+      //sidetabs
+      translate([0,z_bracket_d/2,0])
+        lc_tabs(sheet_thickness(frame));
+      //top tabs
+      rotate([0,0,90])
+        translate([-z_bracket_d / 2 + m_width / 2,(NEMA_length(Z_motor))/2 -0.01,0])
+          lc_tabs(sheet_thickness(frame));
+      //bottom tabs
+      rotate([0,0,-90])
+        translate([z_bracket_d / 2 -m_width / 2,(NEMA_length(Z_motor))/2 -0.01,0])
+          lc_tabs(sheet_thickness(frame));
+    }
+    //side nut slots
+    translate([0,z_bracket_d/2,0])
+      lc_nut_side_cutout(sheet_thickness(frame),true);
+    //top nut slots
+    rotate([0,0,90])
+      translate([-z_bracket_d / 2 + m_width / 2,(NEMA_length(Z_motor))/2,0])
+        lc_nut_side_cutout(sheet_thickness(frame),true); 
+    //bottom nut slots
+    rotate([0,0,-90])
+      translate([z_bracket_d / 2 - m_width / 2,(NEMA_length(Z_motor))/2,0])
+        lc_nut_side_cutout(sheet_thickness(frame),true); 
+  }
+}
+
+module lc_z_axis_bottom_plate(){
+  difference(){
+    union(){
+      sheet(frame, z_bracket_d+8, z_bracket_d, [0, 0, 0, 0]);
+        //side tabs
+        translate([0,z_bracket_d/2,0])
+          lc_tabs(sheet_thickness(frame));
+     }
+    translate([0,-z_bracket_d / 2 + m_width / 2, 0]){
+      cylinder(r = (21.88/2), h = sheet_thickness(frame) + 1, center = true);// hole for stepper locating boss
+      for(x = NEMA_holes(Z_motor))                                              // motor screw holes
+        for(y = NEMA_holes(Z_motor))
+            translate([x,y,0])
+              cylinder(r = 1.45, h = sheet_thickness(frame) + 1, center = true);
+      echo("z_bar_offset: ", z_bar_offset(), " Z_bar_dia/2-0.4: ", Z_bar_dia/2-0.4);
+      translate([z_bar_offset(), 0,  0])
+        cylinder(r = Z_bar_dia / 2-0.4, h = sheet_thickness(frame)+1, center = true);       // hole for z rod
+      //top nut slots
+      translate([0,z_bracket_d - m_width / 2,0])
+         lc_nut_side_cutout(sheet_thickness(frame),true);
+      //top screw side slots
+      for(x = [1,-1])
+        translate([x*(2+z_bracket_d/2-sheet_thickness(frame)/2),0,0])
+          //rotate([0,0,90])
+              lc_screw_side_cutout(sheet_thickness(frame));
+    }                
+  }
+}
+
+module lc_z_axis_bottom_assembly(left=true) {
+    lc_z_axis_bottom(left);
+    if(left){
+      translate([idler_end-z_bar_offset(),Y0, NEMA_length(Z_motor)+sheet_thickness(frame)/2]){
+        NEMA(Z_motor);
+       // translate([0,0, sheet_thickness(frame)])
+       //   NEMA_screws(Z_motor);
+      }
+    }
+    else{
+      translate([motor_end+z_bar_offset(),Y0, NEMA_length(Z_motor)+sheet_thickness(frame)/2]){
+        NEMA(Z_motor);
+        //translate([0,0, sheet_thickness(frame)])
+         // NEMA_screws(Z_motor);
+      }
+    }
+}
+
+module lc_z_axis_bottom(left=true) {
+  if(left)
+    union() {
+      translate([idler_end-z_bar_offset(),z_bracket_d / 2 - m_width / 2 +Y0, NEMA_length(Z_motor)+sheet_thickness(frame)/2])
+          lc_z_axis_bottom_plate();
+      for(x = [1,-1])
+        translate([idler_end-z_bar_offset()+x*(2+z_bracket_d/2-sheet_thickness(frame)/2),z_bracket_d / 2 - m_width / 2 +Y0, (NEMA_length(Z_motor))/2])
+          rotate([0,90,0])
+             lc_z_axis_bottom_side();
+    }  
+  else
+    union() {
+      translate([motor_end+z_bar_offset(),z_bracket_d / 2 - m_width / 2 +Y0, NEMA_length(Z_motor)+sheet_thickness(frame)/2])
+          mirror(1,0,0)
+            lc_z_axis_bottom_plate();
+      for(x = [1,-1])
+        translate([motor_end+z_bar_offset()+x*(2+z_bracket_d/2-sheet_thickness(frame)/2),z_bracket_d / 2 - m_width / 2 +Y0, (NEMA_length(Z_motor))/2])
+          rotate([0,90,0])
+            lc_z_axis_bottom_side();
+    }
+}
+//uses a sandwich of three sheets of frame material for rigidity, top and
+//bottom of sandwich have tabs+fixing holes, middle of sandwich does not
+module lc_extruder_assembly()
+{
+  translate([(left_stay_x+right_stay_x)/2,gantry_Y +(stay_depth_LC)/2  +sheet_thickness(MelamineMDF63)/sqrt(2) ,390-sheet_thickness(MelamineMDF63)/sqrt(2)])
+    rotate([45,0,0])
+      lc_extruder_mount(true);
+  translate([(left_stay_x+right_stay_x)/2,gantry_Y +(stay_depth_LC)/2 ,390])
+    rotate([45,0,0])   
+      lc_extruder_mount(false);
+  translate([(left_stay_x+right_stay_x)/2,gantry_Y +(stay_depth_LC)/2 -sheet_thickness(MelamineMDF63)/sqrt(2) ,390+sheet_thickness(MelamineMDF63)/sqrt(2)])
+    rotate([45,0,0]) 
+      lc_extruder_mount(true);
+  for(x=[105,45,-15,-75,-135])
+    translate([x, 145, 365]) rotate([-45,0,0]) import("rrp_extruder/extruder-drive.stl");
+}
+
+module lc_extruder_mount(outside=true) {
+  difference(){
+    union() {
+      sheet(frame, right_stay_x-left_stay_x-sheet_thickness(frame), stay_depth_LC/3, [0, 0, 0, 0]);
+      if(outside){
+        for(x = [1,-1]){
+          //side tabs
+          translate([x*(right_stay_x-left_stay_x-sheet_thickness(frame)-0.01)/2,0,0])
+            rotate([0,0,x*-90])
+              lc_tabs(sheet_thickness(frame));
+        }
+      }                            
+    }
+    if(outside){
+    //side nut slots
+      for(x = [1,-1]){
+        translate([x*(right_stay_x-left_stay_x-sheet_thickness(frame))/2,0,0])
+          rotate([0,0,x*-90])
+            lc_nut_side_cutout(sheet_thickness(frame),true);
+      }
+    }
+    for(x=[105,45,-15,-75,-135]){
+      translate([x+16.3, 0, 0]) cylinder(r=5.3/2,h=sheet_thickness(frame)*3+1,center=true);
+      translate([x+28.8, 0, 0]) cylinder(r=3.4/2,h=sheet_thickness(frame)*3+1,center=true);
+      translate([x-3.2, 0, 0]) cylinder(r=3.4/2,h=sheet_thickness(frame)*3+1,center=true);
+    }
+
+  }        
+}
+
+//lc acrylic variables
+
+lc_box_back_height = lc_back_top_z+sheet_thickness(PMMA6)*3/2;
+lc_box_back_width = right_stay_x-left_stay_x+sheet_thickness(PMMA6);
+lc_box_height = height_LC+sheet_thickness(PMMA6);
+lc_box_depth = base_d_LC -stay_depth_LC;
+
+module lc_box_back() {
+translate([(left_stay_x+right_stay_x)/2, gantry_Y +(stay_depth_LC)  +sheet_thickness(frame) +sheet_thickness(PMMA6)/2, (lc_back_top_z-sheet_thickness(PMMA6)/2)/2])
+    rotate([90,0,0])
+      difference(){
+        sheet(PMMA6, lc_box_back_width, lc_box_back_height, [0, 0, 0, 0]);
+        //side fixings
+        for (x = [(left_stay_x-right_stay_x)/2 , (-left_stay_x+right_stay_x)/2 ])
+        for(z=[lc_fixing_offset,(height_LC+lc_fixing_offset/2)*1/3, (height_LC-lc_fixing_offset/2)*2/3])
+          translate([x,z-((lc_back_top_z-sheet_thickness(PMMA6)/2)/2),0])
+            lc_screw_cutout(sheet_thickness(PMMA6));
+        //top fixings   
+      translate([(left_stay_x-right_stay_x)/2+2*lc_fixing_offset,((lc_back_top_z+sheet_thickness(PMMA6)/2)/2),0])
+        lc_screw_cutout(sheet_thickness(PMMA6));
+      translate([(right_stay_x-left_stay_x)/2-2*lc_fixing_offset,((lc_back_top_z+sheet_thickness(PMMA6)/2)/2),0])
+        lc_screw_cutout(sheet_thickness(PMMA6));
+        
+       //bottom fixings
+        for(x=[right_stay_x-lc_fixing_offset,(left_stay_x + right_stay_x)/2,left_stay_x+lc_fixing_offset])
+          translate([x-(left_stay_x+right_stay_x)/2,-((lc_back_top_z+sheet_thickness(PMMA6)/2)/2),0])
+            lc_screw_cutout(sheet_thickness(PMMA6));
+        }
+}
+
+module lc_box_side(left=true) {
+    x = left ? -base_w_LC/2-sheet_thickness(PMMA6)/2 : base_w_LC/2+sheet_thickness(PMMA6)/2;
+		i = left ? 1 : -1;
+ translate([x, -(base_d_LC -(stay_depth_LC))/2+gantry_Y+sheet_thickness(PMMA6), (height_LC -sheet_thickness(PMMA6))/2])
+    rotate([90,0,90])
+      difference(){   
+    sheet(PMMA6, lc_box_depth, lc_box_height, [0, 0, 0, 0]);
+    //bottom fixing holes
+    for(a=[-base_d_LC/2+lc_fixing_offset,(-base_d_LC/2 + gantry_Y)/2,gantry_Y-lc_fixing_offset])
+      translate([a+(base_d_LC -(stay_depth_LC))/2-gantry_Y-sheet_thickness(PMMA6),-height_LC/2,0])
+          lc_screw_cutout(sheet_thickness(PMMA6));
+    //top nut traps holes
+    for(a=[-base_d_LC/2+lc_fixing_offset,(-base_d_LC/2 + gantry_Y)/2,gantry_Y-lc_fixing_offset])
+      translate([a+(base_d_LC -(stay_depth_LC))/2-gantry_Y-sheet_thickness(PMMA6),(height_LC+sheet_thickness(PMMA6))/2,0])
+          lc_nut_side_cutout(sheet_thickness(PMMA6),true);
+    //side fixing holes
+    for(z=[lc_fixing_offset,(height_LC+lc_fixing_offset/2)*1/3, (height_LC-lc_fixing_offset/2)*2/3,height_LC-lc_fixing_offset])
+      translate([(base_d_LC -(stay_depth_LC)-sheet_thickness(frame))/2,z-((height_LC -sheet_thickness(PMMA6))/2),0])
+          lc_screw_cutout(sheet_thickness(PMMA6));
+    //holes and cutouts for door hinges
+        for(z=[-(height_LC +sheet_thickness(PMMA6)-hinge_z_cutout)/2,(height_LC -hinge_z_cutout)/2+3*sheet_thickness(PMMA6)/2])
+          translate([-(base_d_LC -(stay_depth_LC)-hinge_y_cutout)/2,z, i*(hinge_x_cutout-sheet_thickness(PMMA6))/2])
+            rotate([0,-90,90])
+              cube([hinge_x_cutout+0.1,hinge_y_cutout+0.1,hinge_z_cutout+0.1],center=true);
+    //hole for bottom Z endstop adjustment (not currently used)
+      //  if(left){
+      //    translate([((base_d_LC -(stay_depth_LC))/2+gantry_Y+sheet_thickness(PMMA6))/2 +30.5,Z0 - x_end_thickness() / 2-(height_LC -sheet_thickness(PMMA6))/2 +28,0])
+      //      cylinder(r=4,h=sheet_thickness(PMMA6)+2,$fn=20,center=true);
+      //  }
+  }
+}
+
+module lc_box_top() {
+  translate([0, -(base_d_LC -(stay_depth_LC))/2+gantry_Y+sheet_thickness(PMMA6), height_LC +sheet_thickness(PMMA6)/2])
+    difference(){   
+    sheet(PMMA6, base_w_LC+2*sheet_thickness(PMMA6),lc_box_depth, [0, 0, 0, 0]);
+    //side fixing holes
+    for(x=[ (-base_w_LC-sheet_thickness(PMMA6))/2 , (base_w_LC+sheet_thickness(PMMA6))/2])
+      for(a=[-base_d_LC/2+lc_fixing_offset,(-base_d_LC/2 + gantry_Y)/2,gantry_Y-lc_fixing_offset])
+        translate([x,a+(base_d_LC -(stay_depth_LC))/2-gantry_Y-sheet_thickness(PMMA6),0])
+            lc_screw_cutout(sheet_thickness(PMMA6));
+    //back fixing holes
+    for(x=[-base_w_LC/2+lc_fixing_offset,(base_w_LC/2-lc_fixing_offset/2)*1/3, (-base_w_LC/2+lc_fixing_offset/2)*1/3,base_w_LC/2-lc_fixing_offset])
+      translate([x,(base_d_LC -(stay_depth_LC)-sheet_thickness(frame))/2,0])
+          lc_screw_cutout(sheet_thickness(PMMA6));
+    //holes and cutouts for door hinges
+        for(x=[ (-base_w_LC+hinge_x_cutout)/2 -sheet_thickness(PMMA6), (base_w_LC-hinge_x_cutout)/2+sheet_thickness(PMMA6)])
+          translate([x,-(base_d_LC -(stay_depth_LC)-hinge_y_cutout)/2,(sheet_thickness(PMMA6)-hinge_z_cutout)/2])
+              cube([hinge_x_cutout+0.1,hinge_y_cutout+0.1,hinge_z_cutout+0.1],center=true);
+        
+        for(x=[-(base_w_LC-hinge_hole_a_x*2+2*sheet_thickness(PMMA6))/2,(base_w_LC-hinge_hole_a_x*2+2*sheet_thickness(PMMA6))/2])
+          translate([x,-(base_d_LC -(stay_depth_LC)-hinge_hole_a_y*2)/2,sheet_thickness(PMMA6)/2])
+            rotate([0,0,90])
+              slot(r=1.75,l=2.5,h=sheet_thickness(PMMA6)+20);
+        for(x=[-(base_w_LC-hinge_hole_b_x*2+2*sheet_thickness(PMMA6))/2,(base_w_LC-hinge_hole_b_x*2+2*sheet_thickness(PMMA6))/2])
+          translate([x,-(base_d_LC -(stay_depth_LC)-hinge_hole_b_y*2)/2,sheet_thickness(PMMA6)/2])
+            rotate([0,0,90])
+              slot(r=1.75,l=2.5,h=sheet_thickness(PMMA6)+20);          
+              
+              
+    //slot for bowden cable/filament
+    translate([(left_stay_x+right_stay_x)/2,((base_d_LC -(stay_depth_LC))/2+gantry_Y+sheet_thickness(PMMA6))/2,0])
+              slot(r=4,l=(right_stay_x-left_stay_x),h=100);
+    }
+}
+
+module lc_box_door(left=true) {
+  x = left ? -base_w_LC/4-sheet_thickness(PMMA6)/2 : base_w_LC/4+sheet_thickness(PMMA6)/2;
+    translate([x, -(base_d_LC +sheet_thickness(PMMA6))/2, (height_LC)/2])
+      rotate([90,0,0])
+        difference(){   
+          sheet(PMMA6, base_w_LC/2+sheet_thickness(PMMA6), height_LC+2*sheet_thickness(PMMA6), [0, 0, 0, 0]);
+          //door nob holes
+          //translate([-x*0.85,0,0])
+          // lc_screw_cutout(sheet_thickness(PMMA6));
+        }
+}
+
+ y0 = sheet_thickness(PMMA6);
+ y1 = y0+ lc_box_back_height+0.1;
+ y2 = y1+ lc_box_back_height+0.1;
+ y3 = y2+ lc_box_height+0.1;
+ y4 = y3+ (lc_box_height)*3/2+sheet_thickness(PMMA6);
+
+
+ 
+module box_all() projection(cut=true)
+{
+    //translate([ -base_w_LC/2-sheet_thickness(PMMA6),y4+1.5+0.1,-height_LC -sheet_thickness(PMMA6)/2]) rotate([0, 0, 0]) lc_box_top();
+    //translate([-lc_box_back_width/2 +22.125,y1,base_d_LC/2+sheet_thickness(PMMA6)/2]) rotate([-90, 0, 0]) lc_box_back();
+   // translate([-lc_box_back_width/4 +33.375,y2,base_w_LC/2+sheet_thickness(PMMA6)/2]) rotate([-90, -90, 0]) lc_box_side(true);
+    //translate([-lc_box_back_width/4 -lc_box_depth+33.375 -0.1,y2,-base_w_LC/2-sheet_thickness(PMMA6)/2]) rotate([-90, -90, 0]) lc_box_side(false);
+    translate([0 ,y3,-base_d_LC/2-sheet_thickness(PMMA6)/2]) rotate([-90, 0, 0]) lc_box_door();
+    //translate([ -base_w_LC/2-sheet_thickness(PMMA6)-0.1,y3,-base_d_LC/2-sheet_thickness(PMMA6)/2]) rotate([-90, 0, 0]) lc_box_door();
+
+
+//spares
+    //translate([-lc_box_back_width/2 +22.125,y0,base_d_LC/2+sheet_thickness(PMMA6)/2]) rotate([-90, 0, 0]) lc_box_back();
+    //translate([ -lc_box_back_width-0.18,y0,-base_d_LC/2-sheet_thickness(PMMA6)/2]) rotate([-90, 0, 0]) lc_box_door();
+    //translate([-6 ,y4+32.77,-base_d_LC/2-sheet_thickness(PMMA6)/2]) rotate([-90, 0, 90]) lc_box_door();
+    //translate([ -base_w_LC/2-sheet_thickness(PMMA6)+31,y1+39.8,-height_LC -sheet_thickness(PMMA6)/2]) rotate([0, 0, 90]) lc_box_top();
+    //translate([ -base_w_LC-sheet_thickness(PMMA6)*2-30.85,y1+39.8,-height_LC -sheet_thickness(PMMA6)/2]) rotate([0, 0, 90]) lc_box_top();
+   //translate([-lc_box_back_width/4 -lc_box_depth-13.6,y0,-base_w_LC/2-sheet_thickness(PMMA6)/2]) rotate([-90, -90, 0]) lc_box_side(false);
 }
 
 module bed_fan_assembly() {
@@ -853,14 +1497,14 @@ module frame_assembly(show_gantry = true) {
                 color("silver") render() base_tube();
 
                 for(end = [-1, 1])
-                    translate([0, end * (base_depth / 2 - AL_tube_inset + tube_cap_base_thickness() + eta), -tube_height(AL_square_tube) / 2])
+                    translate([0, end * (base_d_LC / 2 - AL_tube_inset + tube_cap_base_thickness() + eta), -tube_height(AL_square_tube) / 2])
                         rotate([90, 0, 90 - 90 * end])
                             explode([0, 0, -20])
                                 color("lime") render()
                                     tube_cap_stl();
 
 
-                translate([0, -(base_depth / 2 - fixing_block_width() / 2 - base_clearance), sheet_thickness(base)]) {
+                translate([0, -(base_d_LC / 2 - fixing_block_width() / 2 - base_clearance), sheet_thickness(base)]) {
                     nut_and_washer(base_nut, true);
 
                     translate([0, 0, -sheet_thickness(base) - tube_thickness(AL_square_tube)])
@@ -872,12 +1516,14 @@ module frame_assembly(show_gantry = true) {
 
     if(show_gantry) {
 
-        fixing_blocks()
-            fixing_block_assembly();
 
-        fixing_blocks(true)
-            fixing_block_assembly(true);
+        lc_z_axis_top(true);
+        lc_z_axis_top(false);
 
+        lc_z_axis_bottom_assembly(true);
+        lc_z_axis_bottom_assembly(false);
+
+        lc_back_top();
         frame_stay(true, eta);
         frame_stay(false);
         frame_gantry();
@@ -887,7 +1533,7 @@ module frame_assembly(show_gantry = true) {
 }
 
 
-module machine_assembly(show_bed = true, show_heatshield = true, show_spool = true) {
+module machine_assembly(show_bed = true, show_heatshield = true, show_spool = false) {
     assembly("machine_assembly");
 
     translate([0,0, sheet_thickness(base)]) {
@@ -914,7 +1560,7 @@ module machine_assembly(show_bed = true, show_heatshield = true, show_spool = tr
 
 
 
-machine_assembly(true);
+machine_assembly(show_bed = true, show_heatshield = true, show_spool = false);
 //y_heatshield();
 //frame_assembly(show_spool = false);
 //y_axis_assembly(true);
@@ -924,13 +1570,29 @@ machine_assembly(true);
 
 
 
-module frame_all() projection(cut = true) {
+module frame_all()  projection(cut=true)
+{
     translate([0,0, gantry_Y + sheet_thickness(frame) / 2]) rotate([-90, 0, 0]) frame_gantry();
-    translate([X_origin, height - gantry_thickness - Y_carriage_depth / 2 -1, 0]) y_carriage();
-    translate([0, -base_depth / 2 - 2, sheet_thickness(base) / 2]) frame_base();
-
-    translate([-base_width / 2 - 2 + gantry_Y + sheet_thickness(frame), 0, left_stay_x])  rotate([0, 90, 90]) frame_stay(true);
-    translate([ base_width / 2 + 2 + stay_depth + gantry_Y + sheet_thickness(frame), 0, right_stay_x]) rotate([0, 90, 90]) frame_stay(false);
+    translate([-6,130, 0]) rotate([0, 0, 0]) y_carriage();
+    translate([0, -base_d_LC / 2 - 10, sheet_thickness(base) / 2]) frame_base();
+    translate([-base_w_LC / 2 - 10 + gantry_Y + sheet_thickness(frame), 0, left_stay_x])  rotate([0, 90, 90]) frame_stay(true);
+    translate([-base_w_LC / 2 - 10 + gantry_Y + sheet_thickness(frame), -height_LC-10, right_stay_x]) rotate([0, 90, 90]) frame_stay(false);
+    translate([ stay_depth_LC + sheet_thickness(frame)-115, height_LC-stay_depth_LC/2+60, -height +gantry_thickness-10]) rotate([0, 0, 0]) lc_back_top();
+    translate([ -stay_depth_LC - sheet_thickness(frame)-95, height_LC+40, 0]) rotate([0, 0, 0]) lc_extruder_mount(true);
+    translate([ -stay_depth_LC - sheet_thickness(frame)-95, height_LC+45+stay_depth_LC/3, 0]) rotate([0, 0, 0]) lc_extruder_mount(false);
+    translate([ -stay_depth_LC - sheet_thickness(frame)-95, height_LC+50+stay_depth_LC*2/3, 0]) rotate([0, 0, 0]) lc_extruder_mount(true);
+    translate([295, 195, - sheet_thickness(frame)/4])  rotate([0, 0, 0]) lc_z_axis_top_side();
+    translate([285, 195, - sheet_thickness(frame)/4])  rotate([0, 0, 180]) lc_z_axis_top_side();
+    translate([295, 260, - sheet_thickness(frame)/4])  rotate([0, 0, 0]) lc_z_axis_top_side();
+    translate([285, 260, - sheet_thickness(frame)/4])  rotate([0, 0, 180]) lc_z_axis_top_side();
+    translate([290, 330, 0])  rotate([0, 0, 0]) lc_z_axis_top_plate();
+    translate([290, 400, 0])  rotate([0, 0, 0]) mirror ([1,0,0])lc_z_axis_top_plate();
+    translate([260, 480, 0])   rotate([0, 0, 0]) lc_z_axis_bottom_plate();
+    translate([260, 560, 0])   rotate([0, 0, 0]) mirror ([1,0,0])lc_z_axis_bottom_plate();
+    translate([290, 130, - sheet_thickness(frame)/4])  rotate([0, 0, 270]) lc_z_axis_bottom_side();
+    translate([290, 65, - sheet_thickness(frame)/4])  rotate([0, 0, 270]) lc_z_axis_bottom_side();
+    translate([290, 0, - sheet_thickness(frame)/4])  rotate([0, 0, 270]) lc_z_axis_bottom_side();
+    translate([290, -65, - sheet_thickness(frame)/4])  rotate([0, 0, 270]) lc_z_axis_bottom_side();
 }
 
 module frame_base_dxf() projection(cut = true) translate([0,0, sheet_thickness(base) / 2]) frame_base();
@@ -975,6 +1637,6 @@ module frame_stays_dxf() {
 total_height = height + sheet_thickness(base) + (base_nuts ? tube_height(AL_square_tube) : 0);
 spool_height = total_height - height + spool_z + spool_diameter(spool) / 2;
 
-echo("Width: ", base_width, " Depth: ", base_depth, " Height: ", total_height, " Spool Height:", spool_height);
+echo("Width: ", base_w_LC, " Depth: ", base_d_LC, " Height: ", total_height, " Spool Height:", spool_height);
 
 echo("X bar: ",  X_bar_length, " Y Bar 1: ", Y_bar_length, " Y Bar 2: ", Y_bar_length2, " Z Bar: ", Z_bar_length);

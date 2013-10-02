@@ -138,32 +138,34 @@ module z_motor_bracket_holes(gantry_setback)
 
 module z_motor_assembly(gantry_setback, rhs, standalone = false) {
     assembly("z_motor_assembly");
-
-    color(z_motor_bracket_color) render() z_motor_bracket(gantry_setback, rhs);
+    
+    //not used in LC Frame
+    //color(z_motor_bracket_color) render() z_motor_bracket(gantry_setback, rhs);
     //
     // Clamp screw and washer
     //
-    translate([clamp_x, -clamp_width / 2, clamp_height / 2])
-        rotate([90, 0, 0])
-            screw_and_washer(cap_screw, screw_longer_than(clamp_width + washer_thickness(screw_washer(cap_screw))));
+    //translate([clamp_x, -clamp_width / 2, clamp_height / 2])
+    //    rotate([90, 0, 0])
+    //        screw_and_washer(cap_screw, screw_longer_than(clamp_width + washer_thickness(screw_washer(cap_screw))));
     //
     // Clamp nyloc
     //
-    translate([clamp_x, clamp_width / 2 - nut_trap_depth, clamp_height / 2])
-        rotate([-90, 0, 0])
-            nut(nut, true);
+    //translate([clamp_x, clamp_width / 2 - nut_trap_depth, clamp_height / 2])
+    //    rotate([-90, 0, 0])
+    //        nut(nut, true);
 
+    //not used in LC Frame
     //
     // Mounting screws
     //
-    if(!standalone)
-        z_motor_bracket_hole_positions(gantry_setback)
-            frame_screw(part_base_thickness);
+    //if(!standalone)
+    //    z_motor_bracket_hole_positions(gantry_setback)
+    //        frame_screw(part_base_thickness);
     //
     // Motor and screws
     //
     NEMA(Z_motor);
-    translate([0,0, thickness])
+    translate([0,0, sheet_thickness(frame)])
         NEMA_screws(Z_motor);
 
     //

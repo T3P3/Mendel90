@@ -218,23 +218,30 @@ module z_bar_clamp_switch_stl() translate([0,0,bar_clamp_depth/2]) rotate([0,90,
 module bar_clamps_stl() {
     y2 = bar_clamp_length(Z_bar_dia) - bar_clamp_tab + 2;
     y3 = y2 + bar_clamp_length(Y_bar_dia) - bar_clamp_tab + 2;
-                                                                                         rotate([0, 0, 180]) z_bar_clamp_switch_stl();
-    translate([2, -2 * bar_rail_offset(Z_bar_dia) + bar_clamp_length(Z_bar_dia), 0])                         z_bar_clamp_stl();
+    //rotate([0, 0, 180])
+    //  z_bar_clamp_switch_stl();
+    //translate([2, -2 * bar_rail_offset(Z_bar_dia) + bar_clamp_length(Z_bar_dia), 0])
+    //  z_bar_clamp_stl();
 
-    translate([-10, y2, 0])                                                              rotate([0, 0, 180]) y_bar_clamp_switch_stl();
-    translate([12, y2 -2 * bar_rail_offset(Y_bar_dia) + bar_clamp_length(Y_bar_dia), 0])                     y_bar_clamp_stl();
-
-    translate([0, y3, 0])                                                                rotate([0, 0, 180]) y_bar_clamp_stl();
-    translate([2, y3 -2 * bar_rail_offset(Y_bar_dia) + bar_clamp_length(Y_bar_dia), 0])                      y_bar_clamp_stl();
+    translate([-10, y2, 0])
+      rotate([0, 0, 180])
+			y_bar_clamp_switch_stl();
+    translate([12, y2 -2 * bar_rail_offset(Y_bar_dia) + bar_clamp_length(Y_bar_dia), 0])
+        y_bar_clamp_stl();
+    translate([0, y3, 0])
+      rotate([0, 0, 180])
+        y_bar_clamp_stl();
+    translate([2, y3 -2 * bar_rail_offset(Y_bar_dia) + bar_clamp_length(Y_bar_dia), 0])
+        y_bar_clamp_stl();
 }
 
-if(0)
+if(1)
     bar_clamps_stl();
 else {
-    z_bar_clamp_assembly(Z_bar_dia, gantry_setback, bar_clamp_depth, true);
+    //z_bar_clamp_assembly(Z_bar_dia, gantry_setback, bar_clamp_depth, true);
     //bar_clamp(Z_bar_dia, gantry_setback, bar_clamp_depth, true, false);
 
-    //translate([30, 0, 0]) y_bar_clamp_assembly(Y_bar_dia, Y_bar_height, bar_clamp_depth, true);
-    //translate([30, 0, 0]) bar_clamp(Y_bar_dia, Y_bar_height, bar_clamp_depth, true, true);
+    translate([30, 0, 0]) y_bar_clamp_assembly(Y_bar_dia, Y_bar_height, bar_clamp_depth, true);
+   // translate([30, 0, 0]) bar_clamp(Y_bar_dia, Y_bar_height, bar_clamp_depth, true, true);
 
 }

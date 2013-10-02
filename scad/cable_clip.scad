@@ -70,7 +70,7 @@ stagger = 2.5;
 module tie_wrap_holes(cable, screw) {
     offset = cable_clip_offset(screw, cable);
     w =  cable_width(cable);
-    r = 3 / 2;
+    r = 4 / 2;
     for(side = [-1,1])
         translate([-offset + side * (w / 2 + r), stagger, 0])
             cylinder(r = r, h = 100, center = true);

@@ -152,26 +152,37 @@ module ribbon_clamp_26_40_stl()    ribbon_clamp_stl(26, No6_screw);
 module ribbon_clamp_26_44_stl()    ribbon_clamp_stl(26, M4_cap_screw);
 module ribbon_clamp_26_44N_stl()   ribbon_clamp_stl(26, M4_cap_screw, nutty = true);
 
-module ribbon_clamps_stl() {
-    gap = 2;
+gap = 2;
     y1 = ribbon_clamp_width(cap_screw) / 2 + ribbon_clamp_width(base_screw) / 2 + gap;
-    y2 = y1 + ribbon_clamp_width(base_screw) / 2 + ribbon_clamp_width(frame_screw) / 2 + gap;
-    y3 = y2 + ribbon_clamp_width(frame_screw) / 2 + ribbon_clamp_width(cap_screw) / 2 + gap;
-    y4 = y3 + ribbon_clamp_width(cap_screw) / 2 + ribbon_clamp_width(M3_cap_screw) / 2 + gap;
-    y5 = y4 + ribbon_clamp_width(M3_cap_screw) / 2 + ribbon_clamp_width(M3_cap_screw) / 2 + gap;
+    y2 = y1 + ribbon_clamp_width(base_screw) / 2 + ribbon_clamp_width(M3_cap_screw) / 2 + gap;
+    y3 = y2 + ribbon_clamp_width(M3_cap_screw) / 2 + ribbon_clamp_width(frame_screw) / 2 + gap;
+    y4 = y3 + ribbon_clamp_width(frame_screw) / 2 + ribbon_clamp_width(cap_screw) / 2 + gap;
+    y5 = y4 + ribbon_clamp_width(cap_screw) / 2 + ribbon_clamp_width(M3_cap_screw) / 2 + gap;
+    y6 = y5 + ribbon_clamp_width(M3_cap_screw) / 2 + ribbon_clamp_width(M3_cap_screw) / 2 + gap;
+    y7 = y6 + ribbon_clamp_width(M3_cap_screw) / 2 + ribbon_clamp_width(frame_screw) / 2 + gap;
+
+module ribbon_clamps_stl() {
+    
     rotate([0, 0, 90]) {
-        translate([0,0, 0])  ribbon_clamp_stl(bed_ways, cap_screw, nutty = true);
-        translate([0,y1,0])  ribbon_clamp_stl(bed_ways, base_screw, nutty = (cnc_sheets && base_nuts));
-        translate([0,y2,0])  ribbon_clamp_stl(x_end_ways, frame_screw, nutty = (cnc_sheets && frame_nuts));
-        translate([0,y3,0])  ribbon_clamp_stl(bed_ways, cap_screw);
-        translate([0,y4,0])  ribbon_clamp_stl(x_end_ways, M3_cap_screw);
-        translate([0,y5,0])  ribbon_clamp_stl(extruder_ways, M3_cap_screw);
+        translate([0,0,0])  ribbon_clamp_stl(bed_ways, base_screw, nutty = (cnc_sheets && base_nuts));
+        translate([0,y1, 0])  ribbon_clamp_stl(bed_ways, cap_screw, nutty = true);
+        translate([0,y2,0])  ribbon_clamp_stl(bed_ways, cap_screw);
+        translate([0,y3,0])  ribbon_clamp_stl(x_end_ways, frame_screw, nutty = (cnc_sheets && frame_nuts));
+			translate([0,y4,0])  ribbon_clamp_stl(x_end_ways, M4_cap_screw);
+        translate([0,y5,0])  ribbon_clamp_stl(x_end_ways, M3_cap_screw);
+			translate([0,y6,0])   ribbon_clamp_stl(extruder_ways, M3_cap_screw,nutty = true,slotted = false);
+        translate([0,y7,0])  ribbon_clamp_stl(extruder_ways, M3_cap_screw);
+
     }
 }
-if(0) {
-    ribbon_clamp_assembly(20, M4_cap_screw, 16, 4, nutty = true);
 
-    translate([0, -15, 0]) ribbon_clamp_assembly(20, frame_screw, frame_screw_length, sheet_thickness(frame), nutty = false);
+
+if(0) {
+        translate([0,0, 0])  ribbon_clamp_assembly(bed_ways, cap_screw,16,6,true,true, nutty = true,true);
+        translate([0,y1,0])  ribbon_clamp_assembly(bed_ways, base_screw,16,6,true,true, nutty = true,true);
+			translate([0,y2,0])  ribbon_clamp_assembly(extruder_ways, M3_cap_screw,16,6,true,true, nutty = true,slotted = false);
+        translate([0,y3,0])  ribbon_clamp_assembly(x_end_ways, frame_screw,16,6,true,true, nutty = true,true);
+
 }
 else
     ribbon_clamps_stl();

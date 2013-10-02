@@ -18,7 +18,7 @@ function NEMA_width(motor)    = motor[0];
 function NEMA_length(motor)   = motor[1];
 function NEMA_radius(motor)   = motor[2];
 function NEMA_holes(motor)    = [-motor[8]/2, motor[8]/2];
-function NEMA_big_hole(motor) = motor[4] + 0.2;
+function NEMA_big_hole(motor) = motor[4];
 function NEMA_shaft_length(motor) = motor[7];
 
 module NEMA(motor) {

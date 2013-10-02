@@ -19,7 +19,10 @@ AL_tube_inset = 9.5;
 
 Y0 = limit_switch_offset / 2;
 
-Y_carriage_height = y_motor_bracket_height() + X_carriage_clearance + sheet_thickness(Y_carriage) / 2;
+//additional clearance above the motor for the Y carriage, required if using a 3 point bed leveling scheme with the single pillar at the fron
+Y_carriage_clearance = 1.5;
+
+Y_carriage_height = y_motor_bracket_height() + X_carriage_clearance + Y_carriage_clearance + sheet_thickness(Y_carriage) / 2;
 
 bed_height =  Y_carriage_height + sheet_thickness(Y_carriage) / 2 + pillar_height(bed_pillars) + washer_thickness(M3_washer) + bed_thickness;
 
@@ -59,16 +62,18 @@ z_nut_offset = frame_nut_traps ? -z_slot_inset + nut_radius(frame_nut) + 0.5 : 0
 
 function z_motor_bracket_hole_offset() = ceil(NEMA_width(Z_motor)) / 2 - z_slot_inset + z_nut_offset;
 
-left_stay_x = max(-base_width / 2 + left_w / 2,
+/*left_stay_x = max(-base_width / 2 + left_w / 2,
                   idler_end - z_bar_offset() + z_motor_bracket_hole_offset() + washer_diameter(M4_washer) / 2 + 1) + sheet_thickness(frame) / 2;
+*/
+left_stay_x = idler_end - z_bar_offset() + z_motor_bracket_hole_offset() + washer_diameter(M4_washer) / 2 + 1 + sheet_thickness(frame) / 2;
 
 right_stay_x = frame_nuts ? min(motor_end, motor_end + z_bar_offset() - z_motor_bracket_hole_offset() - washer_diameter(M4_washer) / 2 - 1 - sheet_thickness(frame) / 2)
                           : max(motor_end, base_width / 2 - right_w  + sheet_thickness(frame) / 2 + fixing_block_height() + base_clearance);
 
-Y_belt_height = y_motor_height() + pulley_inner_radius + belt_thickness(Y_belt);
+Y_belt_height = y_motor_height() + pulley_inner_radius + belt_thickness(Y_belt)+Y_carriage_clearance;
 
 Y_bar_height = Y_belt_height;
-Y_belt_clamp_height  =  Y_carriage_height - Y_belt_height - sheet_thickness(Y_carriage) / 2;
+Y_belt_clamp_height  =  Y_carriage_height - Y_belt_height - sheet_thickness(Y_carriage) / 2+Y_carriage_clearance;
 Y_bearing_holder_height = Y_carriage_height - Y_bar_height  - sheet_thickness(Y_carriage) / 2;
 
 fan_y = gantry_Y + sheet_thickness(frame) + fixing_block_height() + fan_width(case_fan) / 2 + base_clearance;
@@ -78,7 +83,7 @@ atx_bracket_width = (frame_nuts && cnc_sheets) ? 2 * (nut_radius(frame_nut) + 3 
                                                : washer_diameter(frame_washer) + 1;
 
 psu_z = fixing_block_height() + psu_length(psu) / 2;
-psu_y = base_depth / 2 - base_clearance - psu_width(psu) / 2 - (atx_psu(psu) ? atx_bracket_width : mains_inlet_inset());
+psu_y = 3+base_depth / 2 - base_clearance - psu_width(psu) / 2 - (atx_psu(psu) ? atx_bracket_width : mains_inlet_inset());
 
 psu_top = psu_z + psu_length(psu) / 2 + (atx_psu(psu) ? 0 : mains_inlet_depth());
 

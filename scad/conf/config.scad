@@ -64,7 +64,7 @@ M8_clearance_radius = 8.4 / 2;
 M8_nut_radius = 15.4 / 2;
 M8_nut_depth = 6.5;
 
-cnc_tool_dia = 2.4;
+cnc_tool_dia = 0.5;
 layer_height = 0.4;
 filament_width = layer_height * 1.5;
 min_wall = 2 * filament_width + eta;
@@ -96,7 +96,7 @@ bed_wires_hole_radius = wire_hole_radius(bed_wires);
 thermistor_wires_hole_radius = wire_hole_radius(thermistor_wires);
 
 cnc_sheets = false;                 // If sheets are cut by CNC we can use slots, etc instead of just round holes
-base_nuts = false;                  // Need something under the base if using nuts
+base_nuts = true;                  // Need something under the base if using nuts
 pulley_type = T5x8_plastic_pulley;
 include <machine.scad>              // this file is generated from the command line parameter to include one of the machine configs
 
@@ -110,8 +110,8 @@ bearing_clamp_tab = cnc_sheets ? (nut_radius(nut) + 3 * filament_width) * 2 : wa
 bearing_clamp_tab_height = 4;           // thickness of the lugs
 
 hole_edge_clearance = 5;                // how close a hole can be to the edge of a sheet
-base_clearance = cnc_sheets ? 1 : 2;    // how close we get to the edge of the base
-axis_end_clearance = cnc_sheets ? 1 : 2;// how close we get to the end of an axis
+base_clearance = cnc_sheets ? 4 : 4;    // how close we get to the edge of the base
+axis_end_clearance = cnc_sheets ? 4 : 4;// how close we get to the end of an axis
 limit_switch_offset = 1;                // the over travel to reach the limit switch
 X_carriage_clearance = 2;               // how close the X carriage is to the XZ plane
                                         // how close the Y carriage is to the window in the XZ plane

@@ -9,7 +9,8 @@
 //
 
 // [width, thickness, [latch_x, latch_y, latch_z], color, length]
-small_ziptie = [2.5, 1, [4.7, 4.25, 3], small_ziptie_color, 25];
+//tony@t3p3 increased ziptie hole size for easier insertion
+small_ziptie = [3.5, 1.5, [4.7, 4.25, 3], small_ziptie_color, 25];
 
 function ziptie_width(type) = type[0];
 function ziptie_thickness(type) = type[1];

@@ -8,6 +8,7 @@
 // Bar stock
 //
 AL_square_tube = [25.4 / 2, 25.4 / 2, 1.63];
+AL_channel = [31.75, 12.7, 3.18];
 
 function tube_width(type)     = type[0];
 function tube_height(type)    = type[1];

@@ -115,7 +115,8 @@ mbracket_depth = NEMA_length(X_motor) + 2 * mbracket_thickness + 1;
 mbracket_centre = mbracket_front + mbracket_depth / 2 - mbracket_thickness;
 
 switch_op_x = Z_bearings[1] / 2 + 3;                            // switch operates 2mm before carriage hits the bearing
-switch_op_z = x_carriage_offset() - x_carriage_thickness() / 2; // hit the edge of the carriage
+//tony@t3p3 added 5mm of height to aid using spade connectors on endstops
+switch_op_z = x_carriage_offset() - x_carriage_thickness() / 2+5; // hit the edge of the carriage
 sbracket_top = switch_op_z + 12;
 sbracket_height = sbracket_top + thickness / 2;
 sbracket_depth = switch_op_x - 3 - front;
@@ -283,8 +284,15 @@ module x_end_bracket(motor_end, assembly = false){
                 translate([switch_op_x,
                            sbracket_y - sbracket_thickness / 2 - microswitch_thickness() / 2,
                            switch_op_z])
-                    rotate([0, -90, -90])
+                    rotate([0, -90, -90]){
                         microswitch_contact_space();
+									//additional clearance for tabbed enstop connectors
+									translate([switch_op_x-2,sbracket_y+4,0])
+										rotate([0, 0, -45])
+											microswitch_contact_space();
+					
+	}
+
 
         }
         //
@@ -423,9 +431,11 @@ module x_end_bracket(motor_end, assembly = false){
                 //
                 // Hole for switch wires
                 //
-                translate([back, -bearing_width / 2 - 3, thickness / 2 + 10])
+		//tony@t3p3
+		//made the hole larger for spade connectors on wiring loom
+                translate([back, -bearing_width / 2 - 5, thickness / 2 + 10])
                     rotate([90, 0, 90])
-                        teardrop(r = 3, h = 2 * mbracket_thickness + 1, center = true);
+                        teardrop(r = 5, h = 2 * mbracket_thickness + 1, center = true);
 
             }
             //
