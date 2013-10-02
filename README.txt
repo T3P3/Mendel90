@@ -1,3 +1,21 @@
+Mendel90 Lasercut
+-----------------
+The Think3dPrint3d variation of the Mendel90. Original Mendel90 source available here:
+https://github.com/nophead/Mendel90
+
+For the initial announcement of this design see my blog post here:
+http://blog.think3dprint3d.com/2013/09/mendel90-laser-cut-ready-to-print.html
+
+IMPORTANT NOTE:
+The make_machine.py script will not work properly with this branch of the Mendel90,
+the individual scad files will need to be compiled if you change variables. Also note that
+the changes are not fully parametric so check the output before printing/lasercutting
+
+======================================================================
+Original text of Nophead's readme follows:
+======================================================================
+
+
 Limitations
 -----------
 Currently only supports mendel and sturdy machine variants, the huxley version needs more work.
