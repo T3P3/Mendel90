@@ -5,19 +5,19 @@
 // nop.head@gmail.com
 // hydraraptor.blogspot.com
 //
-// Model by Václav 'ax' Hula
+// Model by Vï¿½clav 'ax' Hula
 //
 
 module sanguinololu() {
     color(sanguinololu_color)
     import("../imported_stls/sanguinololu.stl");
 }
-
+ //tony@t3p3 the whole spacings are kept the same as the Melzi as they are not used due to odd hole spacings                                                                                               
 Sanguinololu = ["SANGUINOL: Sanguinolou electronics", 4   * 25.4,    2 * 25.4, 1.5 * 2.54, []];
 Melzi =        ["MELZI: Melzi electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, ["USBLEAD: USB A to Mini B lead",
                                                                                                 "SDCARD: Micro SD card",
- //tony@t3p3 the whole spacings are kept the same as the Melzi as they are not used due to odd hole spacings                                                                                                "SDUSB: Micro SD to USB adapter"]];
-RAMPS =        ["RAMPS: RAMPS electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, []]; //NB not the right holes for ramps, dealt with within the main.scad due to odd hole positioning
+ "SDUSB: Micro SD to USB adapter"]];
+RAMPS =        ["RAMPS: RAMPS electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, []]; 
 DUET =        ["DUET: DUET electronics",           8.2 * 25.4, 1.95 * 25.4, 1.5 * 2.54, []]; //NB not the right holes for ramps, dealt with within the main.scad due to odd hole positioning
 
 function controller_name(type)        = type[0];
@@ -45,7 +45,7 @@ module controller(type) {
         color("green")
             render()
                 translate([controller_width(type) / 2, controller_length(type) / 2, pcb_thickness / 2])
-                    rounded_rectangle([controller_width(type), controller_length(type), pcb_thickness], r = controller_hole_inset(type));
+                    rounded_rectangle([controller_width(type), controller_length(type), pcb_thickness], r = controller_hole_inset(type), center=true);
     }
     for(end = [-1, 1])
         translate([-10, controller_length(type) / 2 + end * 10, 5])
