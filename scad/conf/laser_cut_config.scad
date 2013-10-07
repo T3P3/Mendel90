@@ -29,7 +29,8 @@ bed_width = 214;
 bed_pillars = M3x20_pillar;
 bed_glass = glass2;
 bed_thickness = pcb_thickness + sheet_thickness(bed_glass);    // PCB heater plus glass sheet
-bed_holes = 209;
+bed_holes = [209, 209];
+
 
 base = MelamineMDF6;          
 base_corners = 0;
@@ -72,8 +73,8 @@ Y_belt = T2p5x6;
 motor_shaft = 5;
 Z_screw_dia = 5;            // Studding for Z axis
 
-Y_carriage_depth = bed_holes + 7;
-Y_carriage_width = bed_holes + 7;
+Y_carriage_depth = bed_holes[1] + 7;
+Y_carriage_width = bed_holes[0] + 7;
 
 Z_nut_radius = M5_nut_radius;
 Z_nut_depth = M5_nut_depth;

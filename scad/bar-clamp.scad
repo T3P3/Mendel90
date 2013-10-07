@@ -235,7 +235,7 @@ module bar_clamps_stl() {
         y_bar_clamp_stl();
 }
 
-if(1)
+if(0)
     bar_clamps_stl();
 else {
     //z_bar_clamp_assembly(Z_bar_dia, gantry_setback, bar_clamp_depth, true);

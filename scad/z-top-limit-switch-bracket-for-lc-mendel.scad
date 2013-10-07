@@ -19,12 +19,13 @@ thickness = 5;
 
 screw_slot_length = 10;
 screw_spacing = 20;
+new_bracket_adjustment =10;
 switch_boss=7;
 switch_mount_x=8.8;
 switch_mount_y=10;
 screw_mount_y=max(switch_mount_x,M3_nut_radius*2+wall);
 screw_mount_x=4+wall;
-screw_mount_z=switch_boss+screw_spacing+M3_nut_radius*2+wall;
+screw_mount_z=switch_boss+screw_spacing+M3_nut_radius*2+wall+new_bracket_adjustment;
 support_taper=5;
 
 module z_top_limit_switch_bracket_LC_stl() {
@@ -36,7 +37,7 @@ module z_top_limit_switch_bracket_LC_stl() {
             // Boss for switch screws
             //
 					rotate([90,0,0])
-            translate([switch_mount_y, -(microswitch_hole_y_offset() - switch_boss / 2), -microswitch_thickness() / 2])
+            translate([switch_mount_y, -(microswitch_hole_y_offset() - switch_boss / 2) -new_bracket_adjustment/2, -microswitch_thickness() / 2])
                 hull() {
                     microswitch_hole_positions()
                         cylinder(h = switch_mount_x, r = switch_boss / 2);
@@ -44,9 +45,9 @@ module z_top_limit_switch_bracket_LC_stl() {
                         cube([1, switch_boss, switch_mount_x]);
                  }
             //
-            // Screw slot
+            // Vertical Nut Holder
             //
-					translate([0, -switch_mount_x, 0])
+					translate([0, -switch_mount_x, -new_bracket_adjustment/2])
 					hull(){
 						cube([screw_mount_x+support_taper,screw_mount_y,1]);
 						translate([0, 0, screw_mount_z])
@@ -62,7 +63,7 @@ module z_top_limit_switch_bracket_LC_stl() {
             rotate([0, 90, 180])
                 nut_trap(M3_clearance_radius, M3_nut_radius, screw_head_height(M3_hex_screw)+2, true,false);
 			rotate([90,0,0])
-			translate([switch_mount_y, -(microswitch_hole_y_offset() - switch_boss / 2),0])
+			translate([switch_mount_y, -(microswitch_hole_y_offset() - switch_boss / 2) -new_bracket_adjustment/2,0])
         microswitch_hole_positions()
             poly_cylinder(h = 100, r = No2_pilot_radius, center = true);
     }
@@ -88,7 +89,7 @@ rotate([0,0,-90]){
             rotate([0, -90, 180])
                 nut(M3_nut, true);
 			rotate([90, 0, 0]) 
-        translate([switch_mount_y, -(microswitch_hole_y_offset() - switch_boss / 2), -microswitch_thickness() / 2])
+        translate([switch_mount_y, -(microswitch_hole_y_offset() - switch_boss / 2) -new_bracket_adjustment/2, -microswitch_thickness() / 2])
             {
 					if(exploded)
 						translate([5.2,-16,-8]) 
@@ -110,6 +111,7 @@ rotate([0,0,-90]){
 }
 
 if(1)
+
     z_top_limit_switch_LC_assembly();
 else
     z_top_limit_switch_bracket_LC_stl();

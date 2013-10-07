@@ -7,9 +7,9 @@
 //
 // Configuration file
 //
-bom = 2;                        // 0 no bom, 1 assemblies and stls, 2 vitamins as well
-exploded = 0;                   // 1 for exploded view
-
+bom = $bom == undef ? 0: $bom;                 // 0 no bom, 1 assemblies and stls, 2 vitamins as well
+exploded = $exploded == undef ? 0 : $exploded; // 1 for exploded view
+//exploded =1;
 show_jigs = true;               // show printed jigs required to build the machine
 show_support = true;            // show support structures, must be set when generating STLs
 
@@ -98,6 +98,9 @@ thermistor_wires_hole_radius = wire_hole_radius(thermistor_wires);
 cnc_sheets = false;                 // If sheets are cut by CNC we can use slots, etc instead of just round holes
 base_nuts = true;                  // Need something under the base if using nuts
 pulley_type = T5x8_plastic_pulley;
+clip_handles = true;
+include_fan = false;
+part_fan = fan60x15;
 include <machine.scad>              // this file is generated from the command line parameter to include one of the machine configs
 
 screw_clearance_radius = screw_clearance_radius(cap_screw);

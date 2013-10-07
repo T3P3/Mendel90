@@ -55,7 +55,7 @@ function screw_shorter_than(x) = x > 20 ? floor(x / 5) * 5 :
                                  x > 12 ? 12 :
                                  10;
 
-function screw_head_height(type) = type[2] == hs_cap ? type[4] :
+function screw_head_height(type) = type[2] == hs_cap ? type[3] :
                                    type[2] == hs_cs  ? type[4] / 2 : type[5];
 
 

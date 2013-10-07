@@ -19,7 +19,9 @@ function NEMA_length(motor)   = motor[1];
 function NEMA_radius(motor)   = motor[2];
 function NEMA_holes(motor)    = [-motor[8]/2, motor[8]/2];
 function NEMA_big_hole(motor) = motor[4];
+function NEMA_shaft_dia(motor) = motor[6];
 function NEMA_shaft_length(motor) = motor[7];
+function NEMA_hole_pitch(motor) = motor[8];
 
 module NEMA(motor) {
     side = NEMA_width(motor);
@@ -61,6 +63,16 @@ module NEMA(motor) {
                             cylinder(r = 3/2, h = 9, center = true);
             }
         }
+
+        translate([0, side / 2, -length + cap / 2])
+            rotate([90, 0, 0])
+                for(i = [0:3])
+                    rotate([0, 0, 225 + i * 90])
+                        color(["red", "blue","green","black"][i]) render()
+                            translate([1, 0, 0])
+                                cylinder(r = 1.5 / 2, h = 12, center = true);
+
+
     }
 }
 

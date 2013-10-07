@@ -352,20 +352,22 @@ module d_motor_bracket_assembly(motor) {
 
 module d_motor_brackets_stl() {
     d_motor_bracket_stl(NEMA17);
-    translate([12, 40, 0])
+    translate([13, 40, 0])
         d_motor_bracket_lid_stl(NEMA17);
 
-    translate([23, 40, 0])
+    translate([25, 40, 0])
         d_shell_lid_stl(NEMA17);
 
-    translate([-33, 8, 0])
+    translate([-35, 8, 0])
         d_shell_stl(NEMA17);
 
-    translate([26, 5, 0]) {
+// tony@t3p3 added to the clamps stl export
+   /* translate([26, 5, 0]) {
         ribbon_clamp_stl(extruder_ways, cable_screw, nutty = true, slotted = false);
         *color("grey")
             ribbon_clamp_support(extruder_ways, cable_screw);
     }
+*/
 }
 
 if(01) {

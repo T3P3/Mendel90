@@ -5,7 +5,7 @@
 // nop.head@gmail.com
 // hydraraptor.blogspot.com
 //
-// Model by V�clav 'ax' Hula
+// Model by Václav 'ax' Hula
 //
 
 module sanguinololu() {
@@ -45,7 +45,7 @@ module controller(type) {
         color("green")
             render()
                 translate([controller_width(type) / 2, controller_length(type) / 2, pcb_thickness / 2])
-                    rounded_rectangle([controller_width(type), controller_length(type), pcb_thickness], r = controller_hole_inset(type), center=true);
+                    rounded_rectangle([controller_width(type), controller_length(type), pcb_thickness], r = controller_hole_inset(type));
     }
     for(end = [-1, 1])
         translate([-10, controller_length(type) / 2 + end * 10, 5])

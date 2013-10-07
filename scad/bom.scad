@@ -10,5 +10,3 @@
 use <main.scad>
 
 machine_assembly();
-
-//

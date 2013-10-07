@@ -42,7 +42,7 @@ module y_belt_anchor(height, toothed) {
     recess = length - depth;
 
     stl(str("y_belt_anchor", toothed ? "_toothed" : ""));
-    color(y_belt_anchor_color)  union() {
+    union() {
         difference() {
             union() {
                 translate([0, depth / 2, h / 2])                                                        // tall bit
@@ -90,7 +90,7 @@ module y_belt_anchor(height, toothed) {
 module y_belt_clip(toothed) {
     stl(str("y_belt_clip",  toothed ? "_toothed" : ""));
 
-    color(y_belt_clip_color) union() {
+    union() {
         translate([0, 0, clamp_thickness / 2]) difference() {
             rounded_rectangle([width, depth, clamp_thickness], r = rad);
 
