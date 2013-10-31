@@ -19,7 +19,7 @@ extruder_width = 26;
 function nozzle_x_offset() = 16;                // offset from centre of the extruder
 
 
-length = 97;
+length = 80;
 top_thickness = 3;
 rim_thickness = 8;
 nut_trap_thickness = 8;
@@ -61,6 +61,15 @@ tension_screw_length = 25;
 function x_carriage_lug_width() = lug_width;
 function x_carriage_lug_depth() = lug_depth;
 function x_carriage_dowel() = dowel;
+
+
+//
+//Helper module for rotation
+//
+module rotate_about(v,a) {
+	translate(v) rotate(a) translate(-v) child(0);
+}
+
 
 module belt_lug(motor_end) {
     height = motor_end ? x_carriage_offset() - pulley_inner_radius:
@@ -266,198 +275,12 @@ skew = nozzle_height * tan(taper_angle);
 throat_width = (or + skew) * 2;
 
 fan_x = base_offset;
-fan_y = -(width / 2 + fan_width(part_fan) / 2) - (X_carriage_clearance + belt_width(X_belt) + belt_clearance);
-fan_z = nozzle_length + hot_end_duct_offset(hot_end)[2] - duct_height - fan_depth(part_fan) / 2;
+fan_y = -(width / 2 + fan_width(part_fan) / 2) - (X_carriage_clearance + belt_width(X_belt) + belt_clearance)+3;
+fan_z = 20;
 
 fan_y_duct = -fan_y + hot_end_duct_offset(hot_end)[1];
 
-module throat(inner) {
-    y = or + skew - duct_wall;
-    if(inner)
-        translate([-throat_width / 2 + duct_wall, y, nozzle_height])
-            cube([throat_width - 2 * duct_wall, 2 * eta, (duct_height - nozzle_height) - top_thickness]);
-    else
-        translate([-throat_width / 2, y - duct_wall, 0])
-            cube([throat_width, 2 * eta, duct_height]);
-}
-
-module neck(inner) {
-    iw = 2 * (fan_hole_pitch(part_fan) - fan_screw_boss_r) - 3;
-    if(inner)
-        translate([fan_x - iw / 2, fan_y_duct - fan_bore(part_fan) / 2, duct_wall])
-            cube([iw, 2 * eta, duct_height - duct_wall - top_thickness]);
-    else
-        translate([fan_x - fan_width / 2, fan_y_duct - fan_width / 2, 0])
-            cube([fan_width, 2 * eta, duct_height]);
-}
-
-module x_carriage_fan_duct_stl() {
-    stl("x_carriage_fan_duct");
-
-    difference() {
-        union() {
-            difference() {
-                union() {
-                    // fan input
-                    hull() {
-                        for(side = [-1, 1])
-                            translate([fan_x + side * fan_hole_pitch(part_fan), fan_y_duct + fan_hole_pitch(part_fan), 0])
-                                cylinder(r = fan_screw_boss_r, h = duct_height);
-                        neck(false);
-                    }
-                    // neck
-                    hull() {
-                        neck(false);
-                        throat(false);
-                    }
-
-                    // nozzle
-                    hull() {
-                        union() {
-                            cylinder(r1 = or, r2 = or + skew, h = nozzle_height);
-                            translate([0, 0, nozzle_height - eta])
-                                cylinder(r = or + skew, h = duct_height - nozzle_height);
-                        }
-                        throat(false);
-                    }
-                }
-                // hole in the middle
-                translate([0, 0,  -2 * eta])
-                    cylinder(r1 = ir, r2 = ir + skew, h = nozzle_height + 4 * eta);
-                translate([0, 0, nozzle_height - 2 * eta])
-                    cylinder(r = ir + skew, h = duct_height - nozzle_height + 4 * eta);
-
-                // fan entrance
-                hull() {
-                    translate([fan_x, fan_y_duct, duct_wall + duct_height - duct_wall - top_thickness])
-                        rotate([180, 0, 0])
-                            rounded_cylinder(r = fan_bore(part_fan) / 2, h = duct_height - duct_wall - top_thickness, r2 = duct_height / 2);
-
-                    neck(true);
-                }
-                translate([0, 0, duct_height - duct_wall - top_thickness - 1])
-                    hull() {
-                        translate([fan_x, fan_y_duct, duct_wall])
-                            cylinder(r = fan_bore(part_fan) / 2, h = duct_height - duct_wall - top_thickness);
-
-                        neck(true);
-                    }
-
-                // neck
-                hull() {
-                    neck(true);
-                    throat(true);
-                }
-
-                // nozzle exit slot
-                translate([0, 0, -2 * eta])
-                    difference() {
-                        union() {
-                            cylinder(r1 = or - duct_wall, r2 = or + skew - duct_wall, h = nozzle_height);
-                            hull() {
-                                translate([0, 0, nozzle_height - 2 * eta])
-                                    cylinder(r = or + skew - duct_wall, h = duct_height - nozzle_height - 5 * layer_height);
-                                throat(true);
-                            }
-                        }
-
-                        translate([0, 0, -2 * eta])
-                            cylinder(r1 = ir + duct_wall, r2 = ir + skew + duct_wall, h = nozzle_height + 4 * eta);
-
-                        translate([0, 0, nozzle_height - 2 * eta])
-                            cylinder(r = ir + skew + duct_wall, h = duct_height - nozzle_height + 4 * eta);
-
-                    }
-            }
-            for(side = [-1, 1])
-                translate([fan_x + side * fan_hole_pitch(part_fan), fan_y_duct - fan_hole_pitch(part_fan), 0])
-                    cylinder(r = fan_screw_boss_r, h = duct_height);
-        }
-        //
-        // Fan screw nut traps
-        //
-        translate([fan_x, fan_y_duct, -fan_depth(part_fan) / 2])
-            fan_hole_positions(part_fan) group() {
-                nut_trap(screw_clearance_radius(fan_screw), nut_radius(screw_nut(fan_screw)), duct_height - fan_nut_trap_thickness, supported = true);
-                nut_trap(0, nut_radius(screw_nut(fan_screw)) + 0.15, duct_height - fan_nut_trap_thickness - nut_trap_depth(fan_nut));
-            }
-        //
-        // Cold end cooling vent
-        //
-        rotate([0, 0, atan2(-fan_x, -fan_y)])
-            translate([0, ir + skew, duct_height - top_thickness - 3])
-                rotate([90, 0, 0])
-                    teardrop(r = 4.5 / 2, h = 10, center = true);
-    }
-}
-
-module x_carriage_fan_bracket_stl() {
-    stl("x_carriage_fan_bracket");
-
-    t = fan_bracket_thickness;
-    h = fan_z - fan_depth(part_fan) / 2;
-    pitch = fan_hole_pitch(part_fan);
-    boss_r = washer_diameter(fan_washer) / 2 + 1;
-    w = front_nut_pitch * 2 + washer_diameter(M3_washer) + 2 * t;
-    rad = sqrt(2) * pitch - boss_r;
-    bodge = 54 - 51.2;                                              // error in length of MK5 J-head
-    dx = pitch - w / 2;
-    dy = -(fan_y + width / 2) - pitch;
-    hyp = sqrt(dx * dx + dy * dy);
-    angle = atan2(dy, dx) - asin(boss_r / hyp);
-    tangent = sqrt(hyp * hyp - boss_r * boss_r);
-    gusset = tangent - sqrt(boss_r * boss_r - (boss_r - t) * (boss_r - t));
-    gusset_pitch = front_nut_pitch - t / 2 - washer_diameter(M3_washer) / 2 - 1;
-    gusset_spacing = gusset_pitch - t / 2;
-    difference() {
-        union() {
-            hull() {
-                translate([- w / 2, fan_y + width / 2, 0])
-                    cube([w, 1, t]);
-
-                for(side = [-1, 1])
-                    translate([side * pitch, -pitch, 0])
-                        cylinder(r = boss_r, h = t);
-            }
-            translate([- w / 2, fan_y + width / 2, eta])
-                cube([w, t, h]);
-
-            // gussets
-            for(side = [-1, 1]) {
-                translate([side * gusset_pitch, fan_y + width / 2 + t - eta, t - eta])
-                    rotate([90, 0, 90])
-                        right_triangle(width = -(fan_y + width / 2 + t) - sqrt(rad * rad - gusset_spacing * gusset_spacing) - eta, height = h - t, h = t);
-
-                translate([side * (w / 2), fan_y + width / 2 + eta, t - eta])
-                    rotate([90, 0, (90 + angle) * side - 90])
-                        translate([0, 0, -side * t / 2])
-                            linear_extrude(height = t, center = true)
-                                polygon([[0, 0], [0, h - t], [t * sin(angle), h - t], [gusset, 0]]);
-            }
-        }
-        //
-        // clear the fan
-        //
-        cylinder(r = rad, h = 100, center = true);
-
-        for(side = [-1, 1]) {
-            //
-            // mounting screw holes
-            //
-            translate([side * front_nut_pitch, 0, max(h - top_thickness - front_nut_z - bodge, fan_bracket_thickness + washer_diameter(M3_washer) / 2) + h / 2])
-                rotate([90, 0, 0])
-                    vertical_tearslot(h = 100, l = h, r = M3_clearance_radius, center = true);
-            //
-            // fan screw holes
-            //
-            translate([side * pitch, -pitch, 0])
-                poly_cylinder(r = screw_clearance_radius(fan_screw), h = 100, center = true);
-        }
-    }
-}
-
-
-bearing_gap = 5;
+bearing_gap = 2;
 bearing_slit = 1;
 
 hole_width = hole - wall - bearing_slit;
@@ -507,6 +330,192 @@ module inner_base_shape() {
     }
 }
 
+rrpe_w = 40;  //40mm fan
+rrpe_fanheatsink_d=24;
+rrpe_coolingblock_d=8;
+rrpe_nozzle_z_clearance=17;
+rrpe_d = rrpe_fanheatsink_d+rrpe_coolingblock_d;   //fan+cooling block
+rrpe_pn_fixing_clearance_r = 6.5/2;
+rrpe_pn_fixing_clearance_h = rrpe_coolingblock_d+13;
+rrpe_bowden_clearance_r = 4.3/2;
+rrpe_bowden_r = 4/2;
+rrpe_fixing_clearance_r = 3.3/2;
+rrpe_mount_thickness = 7;
+rrpe_fixing_spacing = 15/2;
+rrpe_z_drop = 10;
+rrpe_fixing_length=rrpe_z_drop+rrpe_mount_thickness+5;
+rrpe_fixing_depth=rrpe_pn_fixing_clearance_r*2+1.2;
+rrpe_bar_offset = -1.5; //off set on Y to fit the extruders in
+rrpe_mount_inset = 10; //amount the RRPE mounts are inset from the edge of the Y carriage
+rrpe_mount_width = rrpe_fixing_spacing*2 +rrpe_pn_fixing_clearance_r*2+20;
+rrpe_d_mount_hole_spacing = 25;
+
+module rrpe_mount(){
+	translate([0,0,rrpe_nozzle_z_clearance+rrpe_coolingblock_d-rrpe_z_drop/2])
+	difference(){
+		//mounting block
+		union(){
+			hull(){
+				translate([0,0,(rrpe_mount_thickness)/2])
+					cube([rrpe_fixing_depth,rrpe_pn_fixing_clearance_r*2+4,rrpe_mount_thickness],center=true);	
+				translate([0,0,rrpe_mount_thickness+rrpe_z_drop/2])
+					cube([rrpe_fixing_depth,rrpe_pn_fixing_clearance_r*2,rrpe_mount_thickness+2],center=true);
+			}
+			translate([0,0,(rrpe_mount_thickness+rrpe_z_drop)/2])
+				cube([rrpe_fixing_depth,rrpe_mount_width,rrpe_mount_thickness+rrpe_z_drop],center=true);
+		}	
+
+		//holes
+		rrpe_mounting_cutout();
+	}
+
+}
+module rrpe_mounting_cutout(){
+		//bowden cable
+		hull(){
+				translate([0,0,(rrpe_mount_thickness)/2])
+					cylinder(h=rrpe_mount_thickness, r=rrpe_pn_fixing_clearance_r, center=true);
+				translate([0,0,rrpe_mount_thickness+3/2])
+					cylinder(h=3, r=rrpe_bowden_clearance_r, center=true);
+				translate([rrpe_fixing_depth/2,0,(rrpe_mount_thickness)/2])
+					cube([rrpe_fixing_depth+0.1,rrpe_pn_fixing_clearance_r*2,rrpe_mount_thickness],center=true);
+				translate([rrpe_fixing_depth/2,0,rrpe_mount_thickness+3/2])
+					cube([rrpe_fixing_depth+0.1,rrpe_bowden_clearance_r*2,3],center=true);
+			}
+			translate([0,0,rrpe_mount_thickness+rrpe_z_drop/2])
+				cylinder(h=rrpe_z_drop+2, r=rrpe_bowden_clearance_r, center=true);
+			translate([rrpe_fixing_depth/2,0,rrpe_mount_thickness+rrpe_z_drop/2])
+				cube([rrpe_fixing_depth+0.1,rrpe_bowden_r*2,rrpe_z_drop+2],center=true);
+		//m3 fixings
+		for(y=[-rrpe_fixing_spacing,rrpe_fixing_spacing])
+			translate([0,y,0]){
+				translate([0,0,rrpe_mount_thickness+rrpe_z_drop/2])
+					cylinder(h=rrpe_z_drop+2, r=rrpe_pn_fixing_clearance_r, center=true);
+				translate([0,0,rrpe_mount_thickness/2])
+					cylinder(h=rrpe_mount_thickness+5, r=rrpe_fixing_clearance_r, center=true);
+				translate([rrpe_fixing_depth/2,0,(rrpe_mount_thickness+rrpe_z_drop)/2])
+					cube([rrpe_fixing_depth+0.1,rrpe_fixing_clearance_r*2,rrpe_mount_thickness+rrpe_z_drop+2],center=true);
+				translate([rrpe_fixing_depth/2,0,rrpe_mount_thickness+rrpe_z_drop/2])
+					cube([rrpe_fixing_depth,rrpe_pn_fixing_clearance_r*2,rrpe_z_drop+2],center=true);
+			}
+}
+
+module rrpe(){
+	//fan+cooling block
+
+	translate([rrpe_fanheatsink_d/2+rrpe_coolingblock_d/2,0,rrpe_nozzle_z_clearance+rrpe_w/2-rrpe_z_drop/2])
+		cube([rrpe_fanheatsink_d,rrpe_w,rrpe_w],center=true);
+	translate([0,0,rrpe_nozzle_z_clearance+rrpe_coolingblock_d/2-rrpe_z_drop/2])
+		cube([rrpe_coolingblock_d,rrpe_w,rrpe_coolingblock_d],center=true);
+	translate([0,0,(rrpe_pn_fixing_clearance_h+rrpe_nozzle_z_clearance)/2-rrpe_z_drop/2])
+		cylinder(h=rrpe_pn_fixing_clearance_h+rrpe_nozzle_z_clearance, r=rrpe_bowden_clearance_r, center=true);
+	for(y=[-1,1])
+		translate([0,y*rrpe_fixing_spacing,rrpe_nozzle_z_clearance+rrpe_fixing_length/2-1-rrpe_z_drop/2])
+			cylinder(h=rrpe_fixing_length, r=rrpe_fixing_clearance_r, center=true);
+
+}
+
+//use <ribbon_clamp.scad>
+connector = DCONN15;
+d_face_height = 13;
+d_offset = 20;//height above the X_carriage
+d_flange_clearance = 0.7;
+d_flange_thickness = d_flange_thickness(connector) + d_flange_clearance;
+d_flange_width = d_flange_length(connector) + 2 * d_flange_clearance;
+d_flange_height = d_flange_width(connector) + d_flange_clearance;
+d_wall = 2;
+d_slot_height = 11;
+d_lid_thickness = 2.4;
+d_slot_width = d_slot_length(connector);
+d_thickness = 2.4;
+d_length= d_thickness + 20;
+d_height = d_slot_height / 2 + d_face_height / 2 + d_thickness;
+d_width = d_flange_width + 2 * d_wall;
+d_nut_slot = nut_thickness(M3_nut) + 0.3;
+d_lug_depth = d_nut_slot + 3 * d_wall;
+d_lug_width = 2 * nut_flat_radius(M3_nut) + d_wall;
+d_lug_height = d_thickness + d_slot_height / 2 + M3_nut_radius;
+d_screw_x = d_length - d_wall - No2_pilot_radius;
+d_screw_y = (d_width + d_slot_width) / 4;
+d_pitch  = d_width + 2 * nut_flat_radius(M3_nut);
+d_front_thickness = d_wall + No2_pilot_radius + washer_diameter(M2p5_washer) / 2 + 1;
+d_nut_x = d_length + d_flange_thickness + d_wall -d_lug_depth + d_wall;
+
+
+module d_pcb_mount() {
+			difference() {
+         		union() {
+							//back
+							translate([0, d_offset, eta])
+								cube([d_length,d_width,d_thickness]);
+                    // connector wall
+                    translate([d_length - d_front_thickness, d_offset, eta])
+                        cube([d_front_thickness + d_flange_thickness + d_wall, d_width, d_height]);
+
+                    // nut lugs
+                    translate([d_length + d_flange_thickness + d_wall - d_lug_depth / 2, d_offset + d_width / 2, eta])
+                        rounded_rectangle([d_lug_depth, d_width + 2 * d_lug_width, d_lug_height], r = 2, center = false);
+
+                    // d side walls
+                    for(y = [0, d_width - d_thickness])
+                        translate([0, y + d_offset, eta])
+                            cube([d_length, d_thickness, d_height]);
+							//riser
+							translate([0, 0, eta])
+								cube([d_length-d_lug_depth/2,d_offset,d_thickness]);
+						
+							//base
+							difference(){
+								translate([0, 0, eta])
+									cube([d_length-d_lug_depth/2,d_thickness+nut_thickness(M4_nut),d_thickness+rrpe_d_mount_hole_spacing + nut_flat_radius(M4_nut)*2 + d_thickness*2]);
+								//nut traps for mounting
+								for(z=[-1,1]) {
+									translate([(d_length-d_lug_depth/2)/2,10-nut_thickness(M4_nut),z*rrpe_d_mount_hole_spacing/2 + (d_thickness+rrpe_d_mount_hole_spacing + nut_flat_radius(M4_nut)*2 + d_thickness*2)/2 ])
+										rotate([90,0,0])
+										nut_trap(M4_clearance_radius, M4_nut_radius, M4_nut_trap_depth);
+								}
+							}
+							
+							//bracing
+
+							hull(){
+								translate([0, 0, eta])
+									cube([d_thickness,d_thickness+nut_thickness(M4_nut),d_thickness+rrpe_d_mount_hole_spacing + nut_flat_radius(M4_nut)*2 + d_thickness*2]);
+                        translate([0, d_width - d_thickness + d_offset, eta])
+                            cube([d_thickness, d_thickness, d_height]);
+							}
+
+
+                }
+						//wiring hole for zip tie
+						translate([0,(d_width - d_thickness)/2 + d_offset,d_height+5])
+							rotate([90,0,90])
+								teardrop_plus(r = 2.2, h = 20, center = true);
+					
+
+                translate([d_length, d_offset + (d_width - d_flange_width) / 2, d_thickness + d_slot_height / 2 - d_flange_height / 2])
+                    cube([d_flange_thickness, d_flange_width, 20]);                         // slot for flange
+
+                translate([10, d_width / 2 - d_slot_width / 2 + d_offset, d_thickness + eta * 2])  //slot for connector body
+                    cube([30, d_slot_width, 20]);
+
+
+                for(side = [-1, 1]) {
+                    translate([d_nut_x + d_nut_slot / 2, d_width / 2 - side * d_pitch / 2 + d_offset, d_thickness + d_slot_height / 2]) //connector screws
+                        rotate([90, 0, 90]) {
+                            translate([0, nut_flat_radius(M3_nut), 0])
+                                cube([nut_flat_radius(M3_nut) * 2, 15, d_nut_slot], center = true);
+
+                            teardrop_plus(r = M3_clearance_radius, h = 20, center = true);
+                        }
+
+                    translate([d_screw_x, d_width / 2 - side * d_screw_y + d_offset, d_height + d_lid_thickness])         // lid screws holes
+                        rotate([0,0,180])
+                            poly_cylinder(r = No2_pilot_radius, h = 12 * 2, center = true);
+                }
+	}
+}
+
 module x_carriage_stl(){
     stl("x_carriage");
 
@@ -523,12 +532,18 @@ module x_carriage_stl(){
 
                                 translate([0, 0, top_thickness])
                                     linear_extrude(height = rim_thickness, center = true, convexity = 5)
-                                        difference() {
+                                        //difference() {
                                             inner_base_shape();
-                                            translate([-base_offset, -hole_offset])
-                                                rounded_square(hole + 2 * wall, hole_width + 2 * wall, corner_radius + wall);
 
-                                        }
+//Extruder cutout wall
+/*
+                                            translate([-base_offset, -hole_offset])
+                                                rounded_square(hole + 2 * wall,
+																							hole_width + 2 * wall,
+																								corner_radius + wall);
+*/
+
+                                       // }
                             }
                             // ribs between bearing holders
                             for(side = [-1,1])
@@ -536,13 +551,29 @@ module x_carriage_stl(){
                                 translate([0, - bar_y + side * (bearing_holder_width(X_bearings) / 2 - (wall + eta) / 2), rib_height / 2 - top_thickness + eta])
                                     cube([2 * bar_x - bearing_holder_length(X_bearings) + eta, wall + eta, rib_height], center = true);
 
+
                             // Front nut traps for large fan mount
                             for(end = [-1, 1])
                                 translate([end * (bar_x - bearing_holder_length(X_bearings) / 2 - front_nut_width / 2 + eta) - front_nut_width / 2,
                                             -width / 2 + wall, -top_thickness - eta])
                                      cube([front_nut_width, front_nut_depth, front_nut_height]);
 
+
+//RRPE mounts
+for(x=[-1,1]){
+									translate([(x*(length-rrpe_fixing_depth-rrpe_mount_inset)/2),-rrpe_bar_offset,-top_thickness+rrpe_nozzle_z_clearance+rrpe_z_drop+rrpe_coolingblock_d])
+										if(x==-1)
+											mirror()
+												rotate([180,0,0])
+													rrpe_mount();
+										else
+											rotate([180,0,0])
+												rrpe_mount();
+								}
+
                          }
+
+
                         //Holes for bearing holders
                         translate([0,        bar_y, rim_thickness - top_thickness - eta])
                             cube([bearing_holder_length(X_bearings) - 2 * eta, bearing_holder_width(X_bearings) - 2 * eta, rim_thickness * 2], center = true);
@@ -561,10 +592,12 @@ module x_carriage_stl(){
                     translate([0, bar_y + side * (bearing_holder_width(X_bearings) - min_wall - eta) / 2, rim_thickness / 2 - top_thickness])
                         cube([bearing_holder_length(X_bearings) + 2 * bearing_gap + 1, min_wall, rim_thickness], center = true);
 
+
                 // raised section for nut traps
-                for(xy = mounting_holes)
-                    translate([xy[0] - base_offset, xy[1], (nut_trap_thickness - top_thickness) / 2])
+                for(x = [-1,1])
+                    translate([x*rrpe_d_mount_hole_spacing/2, 0, (nut_trap_thickness - top_thickness) / 2])
                         cylinder(r = 7, h = nut_trap_thickness - top_thickness, center = true);
+
 
                 // belt lugs
                 translate([-length / 2, -width / 2 + eta, -top_thickness])
@@ -580,7 +613,10 @@ module x_carriage_stl(){
                 translate([+ bar_x, -bar_y, bar_offset - top_thickness]) rotate([0,0,90]) bearing_holder(X_bearings, bar_offset - eta);
 
             }
+//Extuder hole and mounts
+/*
             translate([-base_offset, 0, 0]) {
+
                 // hole to clear the hot end
                 translate([0, - hole_offset])
                     rounded_rectangle([hole, hole_width, 2 * rim_thickness], corner_radius);
@@ -591,11 +627,13 @@ module x_carriage_stl(){
                         nut_trap(M4_clearance_radius, M4_nut_radius, M4_nut_trap_depth);
 
             }
+*/
             //
             // Belt grip dowel hole
             //
             translate([-length / 2 + lug_width / 2, -width / 2 + dowel / 2, -top_thickness])
                 cylinder(r = dowel / 2 + 0.1, h = dowel_height * 2, center = true);
+
             //
             // Front mounting nut traps for fan assemblies
             //
@@ -608,6 +646,34 @@ module x_carriage_stl(){
                             nut_trap(screw_clearance_radius(M3_cap_screw), M3_nut_radius, M3_nut_trap_depth, true);
                             cylinder(r = M3_nut_radius + 1, h = bearing_holder_width(X_bearings), center = true);
                         }
+
+
+								//cutout for RRPEs
+		
+								for(x=[-1,1]){
+									translate([(x*(length-rrpe_fixing_depth-rrpe_mount_inset)/2),-rrpe_bar_offset,-top_thickness+rrpe_nozzle_z_clearance+rrpe_z_drop+rrpe_coolingblock_d])
+										if(x==-1)
+											mirror()
+												rotate([180,0,0]){
+													translate([0,0,-1.9])
+														rrpe();
+													translate([0,0,rrpe_nozzle_z_clearance+rrpe_coolingblock_d-rrpe_z_drop/2])
+														rrpe_mounting_cutout();
+												}
+										else
+											rotate([180,0,0]){
+												translate([0,0,-1.9])
+														rrpe();
+												translate([0,0,rrpe_nozzle_z_clearance+rrpe_coolingblock_d-rrpe_z_drop/2])
+													rrpe_mounting_cutout();
+											}
+								}
+								//holes for D mount
+								for(x=[-1,1])
+									translate([(x*rrpe_d_mount_hole_spacing/2),0,rrpe_nozzle_z_clearance-rrpe_z_drop-rrpe_coolingblock_d])
+										cylinder(h=30,r=2.1,center=true);
+
+								
         }
 }
 
@@ -618,7 +684,9 @@ module x_carriage_fan_assembly() {
         rotate([180, 0, 0])
             color(plastic_part_color("lime")) render() x_carriage_fan_duct_stl();
 
-    translate([fan_x, fan_y, fan_z]) {
+
+		translate([fan_x, fan_y, fan_z]) {
+
         color(fan_color) render() fan(part_fan);
         rotate([180, 0, 0]) {
             for(x = [-1, 1])
@@ -630,10 +698,12 @@ module x_carriage_fan_assembly() {
                     translate([0, 0, fan_depth(part_fan) + top_thickness + 30 * exploded])
                         nut(fan_nut, true);
             }
+
             translate([0, 0, fan_depth(part_fan) / 2])
                 color(plastic_part_color("lime")) render() x_carriage_fan_bracket_stl();
         }
     }
+
     end("x_carriage_fan_assembly");
 }
 
@@ -652,10 +722,10 @@ module x_carriage_assembly(show_extruder = true, show_fan = true) {
     // Fan assembly
     //
     if(show_fan)
-        x_carriage_fan_assembly();
+        simple_fan_bracket_assembly();
 
     assembly("x_carriage_assembly");
-    color(x_carriage_color) render() x_carriage_stl();
+    color("DarkGoldenrod") render() x_carriage_stl();
     //
     // Fan bracket screws
     //
@@ -708,7 +778,7 @@ module x_carriage_assembly(show_extruder = true, show_fan = true) {
             rotate([180, 0, 0])
                 screw_and_washer(M3_cap_screw, 25);
     }
-
+	 
     translate([-length / 2 + base_offset - tension_screw_pos, -width / 2 + slot_y, (x_carriage_offset() - pulley_inner_radius - belt_thickness(X_belt)) /2]) {
         rotate([0, -90, 0])
             screw(M3_cap_screw, tension_screw_length);    // tensioning screw
@@ -721,7 +791,14 @@ module x_carriage_assembly(show_extruder = true, show_fan = true) {
             rotate([90, 180, 0])
                 belt_loop();
     }
-
+		//
+		// Potential Belt Colision Area
+		// (uncomment to view)
+/*
+		translate([base_offset, -width / 2 + slot_y,x_carriage_offset()/2 + ball_bearing_diameter(X_idler_bearing) + belt_thickness(X_belt)])
+				%#cube([length+40,6.5,6.5],center=true);
+*/
+		
     translate([-length / 2 + base_offset + lug_width - M3_nut_trap_depth, -width / 2 + slot_y, (x_carriage_offset() - pulley_inner_radius - belt_thickness(X_belt)) /2])
         rotate([90, 0, 90])
             nut(M3_nut, false);   // tensioning nut
@@ -729,34 +806,119 @@ module x_carriage_assembly(show_extruder = true, show_fan = true) {
     end("x_carriage_assembly");
 }
 
-module x_carriage_parts_stl() {
-    x_carriage_stl();
-    translate([fan_x, fan_y - 2, 0]) rotate([0, 0, 180]) x_carriage_fan_bracket_stl();
-    //x_belt_clamp_stl();
-    //translate([-(lug_width + 2),0,0]) x_belt_grip_stl();
-    //translate([6, 8, 0]) rotate([0, 0, -90]) x_belt_tensioner_stl();
+
+rotx=-60; //angle of rotation of the fan
+pitch = fan_hole_pitch(part_fan);
+
+module simple_fan_bracket_assembly(){
+	
+	translate([fan_x, fan_y, fan_z])
+		rotate([rotx,0,0])
+        	color(fan_color) render() fan(part_fan);
+   translate([fan_x, fan_y, fan_z])
+		rotate([rotx,0,0])
+		translate([0,0,-(fan_depth(part_fan))/2])
+        rotate([180, 0, 0])
+            color("OrangeRed") render()
+						simple_fan_bracket_stl();
+
 }
 
+module simple_fan_bracket_stl(){
+	t = fan_bracket_thickness;
+    h = fan_z - fan_depth(part_fan) / 2;
+    boss_r = washer_diameter(fan_washer) / 2 + 2.5;
+    w = front_nut_pitch * 2 + washer_diameter(M3_washer) + 2 * t;
+    rad = sqrt(2) * pitch - boss_r;
 
-module x_carriage_fan_ducts_stl() {
-    x_carriage_fan_duct_stl();
-    translate([80, -fan_y, 0])
-        rotate([0, 0, 180])
-            x_carriage_fan_duct_stl();
-}
+    difference() {
+        union() {
+            hull() {
+                translate([- w / 2, fan_y +width/ 2, -fan_depth(part_fan)-t-M4_nut_trap_depth])
+                    cube([w, 1, t+M4_nut_trap_depth]);
 
-if(1)
-    if(1)  {
-        intersection() {
-            x_carriage_fan_duct_stl();
-            *translate([0, 0, -10])
-                cube(200);
+                for(side = [-1, 1])
+                    translate([side * pitch, -pitch, -fan_depth(part_fan)-t-M4_nut_trap_depth])
+                        cylinder(r = boss_r, h = t+M4_nut_trap_depth);
+            }
+			
+            translate([- w / 2, fan_y + width / 2+10, -fan_depth(part_fan)-15+eta])
+					rotate([-rotx,0,0])
+                cube([w, 12, 17]);			
+        }
+        //
+        // clear the fan
+        //
+			translate([0,0,fan_depth(part_fan)])
+            hull() {
+                translate([- w / 2, fan_y +width/ 2-5, -fan_depth(part_fan)*2])
+                    cube([w, 1, fan_depth(part_fan)-0.1]);
+
+                for(side = [-1, 1])
+                    translate([side * pitch, -pitch, -fan_depth(part_fan)*2])
+                        cylinder(r = boss_r, h = fan_depth(part_fan)-0.1);
+            }
+        			cylinder(r = rad, h = 100, center = true);
+
+        for(side = [-1, 1]) {
+            //
+            // mounting screw holes
+            //
+            translate([side * front_nut_pitch, -15, max(h - top_thickness - front_nut_z , fan_bracket_thickness + washer_diameter(M3_washer) / 2) ])
+                rotate([90-rotx, 0, 0]){
+                    vertical_tearslot(h = 100, l = h, r = M3_clearance_radius, center = true);
+							vertical_tearslot(h = 57, l = h, r = 0.2+washer_diameter(M3_washer) / 2, center = true);
+				}
+            //
+            // fan screw holes
+            //
+          translate([side * pitch, -pitch,-fan_depth(part_fan)-M4_nut_trap_depth/2-t])
+						nut_trap(screw_clearance_radius(fan_screw), M4_nut_radius, M4_nut_trap_depth, true);
         }
     }
-    else
-        if(0)
-            x_carriage_fan_ducts_stl();
-        else
-            x_carriage_parts_stl();
+
+}
+
+
+
+module x_carriage_rrpe_assembly(){
+
+	x_carriage_assembly(false,true);
+	translate([-3.5,9.5,0])
+		rotate([-90,0,270])
+		color(plastic_part_color("LightBlue")) render() d_pcb_mount();
+		rotate([180,0,0])
+	for(x=[-1,1]){
+		translate([base_offset+x*(length-rrpe_fixing_depth-rrpe_mount_inset)/2,rrpe_bar_offset,-(rrpe_nozzle_z_clearance+rrpe_z_drop+rrpe_coolingblock_d+3)])
+		if(x==-1)
+			mirror()
+				%rrpe();
+		else
+			%rrpe();
+	}
+}
+
+module x_carriage_rrpe_stl() {
+		rotate([0,0,0])
+			x_carriage_stl();
+
+		translate([width-15,-30,0])
+		rotate([0,0,0])
+			d_pcb_mount();
+		translate([15,-72,-11])
+			rotate([180,0,0])
+				simple_fan_bracket_stl();
+	translate([-width/2,0,0]){
+   // x_belt_clamp_stl();
+   // translate([0,-(lug_depth+7),0]) x_belt_grip_stl();
+   // translate([6, 8, 0]) rotate([0, 0, -90]) x_belt_tensioner_stl();
+	}
+
+}
+
+
+if(0) 
+	x_carriage_rrpe_assembly();
 else
-    x_carriage_assembly(true);
+    x_carriage_rrpe_stl();
+
